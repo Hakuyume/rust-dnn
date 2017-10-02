@@ -26,7 +26,7 @@ fn main() {
 
         let softmax = softmax::Softmax::new(softmax::Algorithm::Accurate, softmax::Mode::Channel)
             .unwrap();
-        let softmax = softmax.compile(&mut context, &x_desc, &y_desc).unwrap();
+        let softmax = softmax.compile(&mut context, &y_desc, &y_desc).unwrap();
 
         let x = memory::Memory::new(x_desc.len()).unwrap();
         let mut h = memory::Memory::new(y_desc.len()).unwrap();
