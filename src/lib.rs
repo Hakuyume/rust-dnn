@@ -8,3 +8,4 @@ pub mod context;
 
 pub mod convolution;
 pub mod softmax;
+pub mod activation;
