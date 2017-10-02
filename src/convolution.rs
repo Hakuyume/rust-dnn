@@ -84,13 +84,13 @@ impl<'a, T: scalar::Float> Convolution2DCompiled<'a, T> {
         let (context, workspace) = try!(context.context_with_workspace(self.workspace_size));
         try!(convolution::forward(context,
                                   T::ONE,
-                                  tensor::Tensor::new(&self.x_desc, x).unwrap(),
+                                  tensor::Tensor::new(self.x_desc, x).unwrap(),
                                   filter::Filter::new(&self.w_desc, &self.w).unwrap(),
                                   &self.conv_desc,
                                   self.algo,
                                   workspace,
                                   T::ZERO,
-                                  tensor::TensorMut::new(&self.y_desc, y).unwrap()));
+                                  tensor::TensorMut::new(self.y_desc, y).unwrap()));
         Ok(())
     }
 }
