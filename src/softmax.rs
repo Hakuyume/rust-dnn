@@ -24,7 +24,7 @@ impl<T: scalar::Float> Softmax<T> {
            })
     }
 
-    pub fn foward<'a>(&mut self,
+    pub fn foward<'a>(&self,
                       context: &mut context::Context,
                       x: tensor::Tensor<'a, T>,
                       y: tensor::TensorMut<'a, T>)
