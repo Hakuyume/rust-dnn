@@ -13,8 +13,8 @@ pub struct Convolution2D<T: scalar::Float> {
     w_desc: filter::Descriptor<T>,
     w: memory::Memory<T>,
     conv_desc: convolution::Descriptor<T>,
-    algo: Option<convolution::FwdAlgo>,
-    workspace_size: Option<usize>,
+    algo: convolution::FwdAlgo,
+    workspace_size: usize,
 }
 
 impl<T: scalar::Float + From<f32>> Convolution2D<T> {
@@ -40,8 +40,8 @@ impl<T: scalar::Float + From<f32>> Convolution2D<T> {
                w_desc,
                w,
                conv_desc,
-               algo: None,
-               workspace_size: None,
+               algo: convolution::FwdAlgo::ImplicitGemm,
+               workspace_size: 0,
            })
     }
 
@@ -57,8 +57,8 @@ impl<T: scalar::Float + From<f32>> Convolution2D<T> {
                                                                     y_desc,
                                                                     1));
         let convolution::FwdAlgoPerf { algo, memory, .. } = perf_results[0];
-        self.algo = Some(algo);
-        self.workspace_size = Some(memory);
+        self.algo = algo;
+        self.workspace_size = memory;
         Ok(())
     }
 
@@ -67,14 +67,13 @@ impl<T: scalar::Float + From<f32>> Convolution2D<T> {
                       x: tensor::Tensor<'a, T>,
                       y: tensor::TensorMut<'a, T>)
                       -> Result<()> {
-        let (context, workspace) = try!(context.context_with_workspace(self.workspace_size
-                                                                           .unwrap()));
+        let (context, workspace) = try!(context.context_with_workspace(self.workspace_size));
         try!(convolution::forward(context,
                                   T::from(1.),
                                   x,
                                   filter::Filter::new(&self.w_desc, &self.w).unwrap(),
                                   &self.conv_desc,
-                                  self.algo.unwrap(),
+                                  self.algo,
                                   workspace,
                                   T::from(0.),
                                   y));
