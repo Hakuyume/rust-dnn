@@ -24,15 +24,12 @@ fn main() {
             .set_4d(tensor::Format::NCHW, n, c_out, h, w)
             .unwrap();
 
-        let mut conv = convolution::Convolution2D::new(c_out, c_in, 3, 1, 1, 1).unwrap();
-        conv.compile(&mut context, &x_desc, &y_desc).unwrap();
+        let conv = convolution::Convolution2D::new(c_out, c_in, 3, 1, 1, 1).unwrap();
+        let conv = conv.compile(&mut context, &x_desc, &y_desc).unwrap();
 
         let x = memory::Memory::new(x_desc.len()).unwrap();
         let mut y = memory::Memory::new(y_desc.len()).unwrap();
-        conv.foward(&mut context,
-                    tensor::Tensor::new(&x_desc, &x).unwrap(),
-                    tensor::TensorMut::new(&y_desc, &mut y).unwrap())
-            .unwrap();
+        conv.foward(&mut context, &x, &mut y).unwrap();
 
         let mut y_host = vec![0.; y.len()];
         memory::memcpy(&mut y_host, &y).unwrap();

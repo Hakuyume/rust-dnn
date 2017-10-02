@@ -13,11 +13,19 @@ pub struct Convolution2D<T: scalar::Float> {
     w_desc: filter::Descriptor<T>,
     w: memory::Memory<T>,
     conv_desc: convolution::Descriptor<T>,
+}
+
+pub struct Convolution2DCompiled<'a, T: 'a + scalar::Float> {
+    w_desc: filter::Descriptor<T>,
+    w: memory::Memory<T>,
+    conv_desc: convolution::Descriptor<T>,
+    x_desc: &'a tensor::Descriptor<T>,
+    y_desc: &'a tensor::Descriptor<T>,
     algo: convolution::FwdAlgo,
     workspace_size: usize,
 }
 
-impl<T: scalar::Float + From<f32>> Convolution2D<T> {
+impl<T: scalar::Float> Convolution2D<T> {
     pub fn new(c_out: usize,
                c_in: usize,
                ksize: usize,
@@ -40,16 +48,14 @@ impl<T: scalar::Float + From<f32>> Convolution2D<T> {
                w_desc,
                w,
                conv_desc,
-               algo: convolution::FwdAlgo::ImplicitGemm,
-               workspace_size: 0,
            })
     }
 
-    pub fn compile(&mut self,
-                   context: &mut context::Context,
-                   x_desc: &tensor::Descriptor<T>,
-                   y_desc: &tensor::Descriptor<T>)
-                   -> Result<()> {
+    pub fn compile<'a>(self,
+                       context: &mut context::Context,
+                       x_desc: &'a tensor::Descriptor<T>,
+                       y_desc: &'a tensor::Descriptor<T>)
+                       -> Result<Convolution2DCompiled<'a, T>> {
         let perf_results = try!(convolution::find_forward_algorithm(context.context(),
                                                                     x_desc,
                                                                     &self.w_desc,
@@ -57,26 +63,34 @@ impl<T: scalar::Float + From<f32>> Convolution2D<T> {
                                                                     y_desc,
                                                                     1));
         let convolution::FwdAlgoPerf { algo, memory, .. } = perf_results[0];
-        self.algo = algo;
-        self.workspace_size = memory;
-        Ok(())
+        Ok(Convolution2DCompiled {
+               w_desc: self.w_desc,
+               w: self.w,
+               conv_desc: self.conv_desc,
+               x_desc: x_desc,
+               y_desc: y_desc,
+               algo,
+               workspace_size: memory,
+           })
     }
+}
 
-    pub fn foward<'a>(&self,
-                      context: &mut context::Context,
-                      x: tensor::Tensor<'a, T>,
-                      y: tensor::TensorMut<'a, T>)
-                      -> Result<()> {
+impl<'a, T: scalar::Float + From<f32>> Convolution2DCompiled<'a, T> {
+    pub fn foward(&self,
+                  context: &mut context::Context,
+                  x: &memory::Slice<T>,
+                  y: &mut memory::Slice<T>)
+                  -> Result<()> {
         let (context, workspace) = try!(context.context_with_workspace(self.workspace_size));
         try!(convolution::forward(context,
                                   T::from(1.),
-                                  x,
+                                  tensor::Tensor::new(&self.x_desc, x).unwrap(),
                                   filter::Filter::new(&self.w_desc, &self.w).unwrap(),
                                   &self.conv_desc,
                                   self.algo,
                                   workspace,
                                   T::from(0.),
-                                  y));
+                                  tensor::TensorMut::new(&self.y_desc, y).unwrap()));
         Ok(())
     }
 }
