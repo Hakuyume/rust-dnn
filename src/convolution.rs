@@ -1,4 +1,3 @@
-use cuda::slice;
 use cuda::memory;
 
 use cudnn::scalar;
@@ -14,14 +13,11 @@ pub struct Convolution2D<T: scalar::Float> {
     w_desc: filter::Descriptor<T>,
     w: memory::Memory<T>,
     conv_desc: convolution::Descriptor<T>,
+    forward_cache: Option<ForwardCache>,
 }
 
-pub struct Convolution2DCompiled<'a, T: 'a + scalar::Float> {
-    w_desc: filter::Descriptor<T>,
-    w: memory::Memory<T>,
-    conv_desc: convolution::Descriptor<T>,
-    x_desc: &'a tensor::Descriptor<T>,
-    y_desc: &'a tensor::Descriptor<T>,
+struct ForwardCache {
+    params: (tensor::Param4D, tensor::Param4D),
     algo: convolution::FwdAlgo,
     workspace_size: usize,
 }
@@ -49,49 +45,62 @@ impl<T: scalar::Float> Convolution2D<T> {
                w_desc,
                w,
                conv_desc,
+               forward_cache: None,
            })
     }
 
-    pub fn compile<'a>(self,
-                       context: &mut context::Context,
-                       x_desc: &'a tensor::Descriptor<T>,
-                       y_desc: &'a tensor::Descriptor<T>)
-                       -> Result<Convolution2DCompiled<'a, T>> {
+    fn find_forward_algorithm(&mut self,
+                              context: &mut context::Context,
+                              x_desc: &tensor::Descriptor<T>,
+                              y_desc: &tensor::Descriptor<T>)
+                              -> Result<(convolution::FwdAlgo, usize)> {
+        let params_new = (try!(x_desc.get_4d()), try!(y_desc.get_4d()));
+
+        if let Some(ForwardCache {
+                        ref params,
+                        algo,
+                        workspace_size,
+                    }) = self.forward_cache {
+            if &params_new == params {
+                return Ok((algo, workspace_size));
+            }
+        }
+
         let perf_results = try!(convolution::find_forward_algorithm(context.context(),
                                                                     x_desc,
                                                                     &self.w_desc,
                                                                     &self.conv_desc,
                                                                     y_desc,
                                                                     1));
-        let convolution::FwdAlgoPerf { algo, memory, .. } = perf_results[0];
-        Ok(Convolution2DCompiled {
-               w_desc: self.w_desc,
-               w: self.w,
-               conv_desc: self.conv_desc,
-               x_desc: x_desc,
-               y_desc: y_desc,
-               algo,
-               workspace_size: memory,
-           })
+        let convolution::FwdAlgoPerf {
+            algo,
+            memory: workspace_size,
+            ..
+        } = perf_results[0];
+        self.forward_cache = Some(ForwardCache {
+                                      params: params_new,
+                                      algo,
+                                      workspace_size,
+                                  });
+        Ok((algo, workspace_size))
     }
-}
 
-impl<'a, T: scalar::Float> Convolution2DCompiled<'a, T> {
-    pub fn foward(&self,
-                  context: &mut context::Context,
-                  x: &slice::Slice<T>,
-                  y: &mut slice::Slice<T>)
-                  -> Result<()> {
-        let (context, workspace) = try!(context.context_with_workspace(self.workspace_size));
+    pub fn foward<'a>(&mut self,
+                      context: &mut context::Context,
+                      x: tensor::Tensor<'a, T>,
+                      y: tensor::TensorMut<'a, T>)
+                      -> Result<()> {
+        let (algo, workspace_size) = try!(self.find_forward_algorithm(context, x.desc, y.desc));
+        let (context, workspace) = try!(context.context_with_workspace(workspace_size));
         try!(convolution::forward(context,
                                   T::ONE,
-                                  tensor::Tensor::new(self.x_desc, x).unwrap(),
+                                  x,
                                   filter::Filter::new(&self.w_desc, &self.w).unwrap(),
                                   &self.conv_desc,
-                                  self.algo,
+                                  algo,
                                   workspace,
                                   T::ZERO,
-                                  tensor::TensorMut::new(self.y_desc, y).unwrap()));
+                                  y));
         Ok(())
     }
 }
