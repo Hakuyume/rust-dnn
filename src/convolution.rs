@@ -95,7 +95,7 @@ impl<T: scalar::Float> Convolution2D<T> {
         try!(convolution::forward(context,
                                   T::ONE,
                                   x,
-                                  filter::Filter::new(&self.w_desc, &self.w).unwrap(),
+                                  filter::Filter::new(&self.w_desc, &self.w),
                                   &self.conv_desc,
                                   algo,
                                   workspace,

@@ -34,13 +34,13 @@ fn main() {
         let mut y = memory::Memory::new(y_desc.len()).unwrap();
 
         conv.foward(&mut context,
-                    tensor::Tensor::new(&x_desc, &x).unwrap(),
-                    tensor::TensorMut::new(&y_desc, &mut h).unwrap())
+                    tensor::Tensor::new(&x_desc, &x),
+                    tensor::TensorMut::new(&y_desc, &mut h))
             .unwrap();
         softmax
             .foward(&mut context,
-                    tensor::Tensor::new(&y_desc, &h).unwrap(),
-                    tensor::TensorMut::new(&y_desc, &mut y).unwrap())
+                    tensor::Tensor::new(&y_desc, &h),
+                    tensor::TensorMut::new(&y_desc, &mut y))
             .unwrap();
 
         let mut y_host = vec![0.; y.len()];
