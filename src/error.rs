@@ -1,4 +1,6 @@
-use std;
+use std::error;
+use std::fmt;
+use std::result;
 
 use cuda;
 use cudnn;
@@ -9,9 +11,9 @@ pub enum Error {
     Cudnn(cudnn::Error),
 }
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = result::Result<T, Error>;
 
-impl std::error::Error for Error {
+impl error::Error for Error {
     fn description(&self) -> &str {
         match *self {
             Error::Cuda(ref err) => err.description(),
@@ -20,8 +22,8 @@ impl std::error::Error for Error {
     }
 }
 
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
 }
