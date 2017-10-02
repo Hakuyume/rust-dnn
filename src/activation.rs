@@ -34,8 +34,4 @@ impl<T: scalar::Float> Activation<T> {
         activation::forward_inplace(context.context(), &self.desc, T::ONE, x, T::ZERO)?;
         Ok(())
     }
-
-    pub fn relu() -> Result<Activation<T>> {
-        Activation::new(Mode::Relu, true, 0.)
-    }
 }
