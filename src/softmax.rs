@@ -6,19 +6,20 @@ use cudnn::scalar;
 use cudnn::tensor;
 
 use cudnn::softmax;
+pub use cudnn::softmax::{Algorithm, Mode};
 
 use Result;
 use context;
 
 pub struct Softmax<T: scalar::Float> {
-    algo: softmax::Algorithm,
-    mode: softmax::Mode,
+    algo: Algorithm,
+    mode: Mode,
     _dummy: marker::PhantomData<T>,
 }
 
 pub struct SoftmaxCompiled<'a, T: 'a + scalar::Float> {
-    algo: softmax::Algorithm,
-    mode: softmax::Mode,
+    algo: Algorithm,
+    mode: Mode,
     x_desc: &'a tensor::Descriptor<T>,
     y_desc: &'a tensor::Descriptor<T>,
 }

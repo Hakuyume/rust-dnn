@@ -24,9 +24,8 @@ fn main() {
         let conv = convolution::Convolution2D::new(c_out, c_in, 3, 1, 1, 1).unwrap();
         let conv = conv.compile(&mut context, &x_desc, &y_desc).unwrap();
 
-        let softmax = softmax::Softmax::new(cudnn::softmax::Algorithm::Accurate,
-                                            cudnn::softmax::Mode::Channel)
-                .unwrap();
+        let softmax = softmax::Softmax::new(softmax::Algorithm::Accurate, softmax::Mode::Channel)
+            .unwrap();
         let softmax = softmax.compile(&mut context, &x_desc, &y_desc).unwrap();
 
         let x = memory::Memory::new(x_desc.len()).unwrap();
