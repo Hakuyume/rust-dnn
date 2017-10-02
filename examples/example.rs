@@ -2,6 +2,7 @@ extern crate cuda;
 extern crate cudnn;
 extern crate dnn;
 
+use cuda::slice;
 use cuda::memory;
 use cudnn::tensor;
 
@@ -9,6 +10,12 @@ use dnn::context;
 use dnn::convolution;
 use dnn::softmax;
 use dnn::activation;
+
+fn dump(mem: &slice::Slice<f32>, len: usize) {
+    let mut host = vec![0.; len];
+    memory::memcpy(&mut host, &mem[..len]).unwrap();
+    println!("{:?}", &host);
+}
 
 fn main() {
     let mut context = context::Context::new().unwrap();
@@ -39,14 +46,17 @@ fn main() {
                     tensor::Tensor::new(&x_desc, &x),
                     tensor::TensorMut::new(&y_desc, &mut h))
             .unwrap();
+        dump(&h, 16);
+
+        relu.foward_inplace(&mut context, tensor::TensorMut::new(&y_desc, &mut h))
+            .unwrap();
+        dump(&h, 16);
+
         softmax
             .foward(&mut context,
                     tensor::Tensor::new(&y_desc, &h),
                     tensor::TensorMut::new(&y_desc, &mut y))
             .unwrap();
-
-        let mut y_host = vec![0.; y.len()];
-        memory::memcpy(&mut y_host, &y).unwrap();
-        println!("{:?}", &y_host[..16]);
+        dump(&y, 16);
     }
 }
