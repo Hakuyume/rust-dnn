@@ -7,3 +7,4 @@ pub use error::Result;
 pub mod context;
 
 pub mod convolution;
+pub mod softmax;
