@@ -1,6 +1,6 @@
 use std::marker;
 
-use cuda::memory;
+use cuda::slice;
 
 use cudnn::scalar;
 use cudnn::tensor;
@@ -50,8 +50,8 @@ impl<T: scalar::Float> Softmax<T> {
 impl<'a, T: scalar::Float> SoftmaxCompiled<'a, T> {
     pub fn foward(&self,
                   context: &mut context::Context,
-                  x: &memory::Slice<T>,
-                  y: &mut memory::Slice<T>)
+                  x: &slice::Slice<T>,
+                  y: &mut slice::Slice<T>)
                   -> Result<()> {
         try!(softmax::forward(context.context(),
                               self.algo,

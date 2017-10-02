@@ -1,3 +1,4 @@
+use cuda::slice;
 use cuda::memory;
 
 use cudnn::context;
@@ -22,7 +23,7 @@ impl Context {
 
     pub fn context_with_workspace(&mut self,
                                   size: usize)
-                                  -> Result<(&mut context::Context, &mut memory::Slice<u8>)> {
+                                  -> Result<(&mut context::Context, &mut slice::Slice<u8>)> {
         if self.workspace.len() < size {
             self.workspace = try!(memory::Memory::new(size));
         }

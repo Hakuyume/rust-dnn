@@ -1,3 +1,4 @@
+use cuda::slice;
 use cuda::memory;
 
 use cudnn::scalar;
@@ -78,8 +79,8 @@ impl<T: scalar::Float> Convolution2D<T> {
 impl<'a, T: scalar::Float> Convolution2DCompiled<'a, T> {
     pub fn foward(&self,
                   context: &mut context::Context,
-                  x: &memory::Slice<T>,
-                  y: &mut memory::Slice<T>)
+                  x: &slice::Slice<T>,
+                  y: &mut slice::Slice<T>)
                   -> Result<()> {
         let (context, workspace) = try!(context.context_with_workspace(self.workspace_size));
         try!(convolution::forward(context,
