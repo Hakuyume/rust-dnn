@@ -17,22 +17,31 @@ fn main() {
         let (c_in, c_out) = (256, 16);
 
         let mut x_desc = tensor::Descriptor::new().unwrap();
-        x_desc.set_4d(tensor::Format::NCHW, n, c_in, h, w).unwrap();
-        let mut y_desc = tensor::Descriptor::new().unwrap();
-        y_desc.set_4d(tensor::Format::NCHW, n, c_out, h, w).unwrap();
-
-        let conv = convolution::Convolution2D::new(c_out, c_in, 3, 1, 1, 1).unwrap();
-        let conv = conv.compile(&mut context, &x_desc, &y_desc).unwrap();
-
-        let softmax = softmax::Softmax::new(softmax::Algorithm::Accurate, softmax::Mode::Channel)
+        x_desc
+            .set_4d(tensor::Format::NCHW, n, c_in, h, w)
             .unwrap();
-        let softmax = softmax.compile(&mut context, &y_desc, &y_desc).unwrap();
+        let mut y_desc = tensor::Descriptor::new().unwrap();
+        y_desc
+            .set_4d(tensor::Format::NCHW, n, c_out, h, w)
+            .unwrap();
+
+        let mut conv = convolution::Convolution2D::new(c_out, c_in, 3, 1, 1, 1).unwrap();
+        let mut softmax =
+            softmax::Softmax::new(softmax::Algorithm::Accurate, softmax::Mode::Channel).unwrap();
 
         let x = memory::Memory::new(x_desc.len()).unwrap();
         let mut h = memory::Memory::new(y_desc.len()).unwrap();
         let mut y = memory::Memory::new(y_desc.len()).unwrap();
-        conv.foward(&mut context, &x, &mut h).unwrap();
-        softmax.foward(&mut context, &h, &mut y).unwrap();
+
+        conv.foward(&mut context,
+                    tensor::Tensor::new(&x_desc, &x).unwrap(),
+                    tensor::TensorMut::new(&y_desc, &mut h).unwrap())
+            .unwrap();
+        softmax
+            .foward(&mut context,
+                    tensor::Tensor::new(&y_desc, &h).unwrap(),
+                    tensor::TensorMut::new(&y_desc, &mut y).unwrap())
+            .unwrap();
 
         let mut y_host = vec![0.; y.len()];
         memory::memcpy(&mut y_host, &y).unwrap();

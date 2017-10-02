@@ -1,7 +1,5 @@
 use std::marker;
 
-use cuda::slice;
-
 use cudnn::scalar;
 use cudnn::tensor;
 
@@ -17,13 +15,6 @@ pub struct Softmax<T: scalar::Float> {
     _dummy: marker::PhantomData<T>,
 }
 
-pub struct SoftmaxCompiled<'a, T: 'a + scalar::Float> {
-    algo: Algorithm,
-    mode: Mode,
-    x_desc: &'a tensor::Descriptor<T>,
-    y_desc: &'a tensor::Descriptor<T>,
-}
-
 impl<T: scalar::Float> Softmax<T> {
     pub fn new(algo: softmax::Algorithm, mode: softmax::Mode) -> Result<Softmax<T>> {
         Ok(Softmax {
@@ -33,33 +24,18 @@ impl<T: scalar::Float> Softmax<T> {
            })
     }
 
-    pub fn compile<'a>(self,
-                       _: &mut context::Context,
-                       x_desc: &'a tensor::Descriptor<T>,
-                       y_desc: &'a tensor::Descriptor<T>)
-                       -> Result<SoftmaxCompiled<'a, T>> {
-        Ok(SoftmaxCompiled {
-               algo: self.algo,
-               mode: self.mode,
-               x_desc: x_desc,
-               y_desc: y_desc,
-           })
-    }
-}
-
-impl<'a, T: scalar::Float> SoftmaxCompiled<'a, T> {
-    pub fn foward(&self,
-                  context: &mut context::Context,
-                  x: &slice::Slice<T>,
-                  y: &mut slice::Slice<T>)
-                  -> Result<()> {
+    pub fn foward<'a>(&mut self,
+                      context: &mut context::Context,
+                      x: tensor::Tensor<'a, T>,
+                      y: tensor::TensorMut<'a, T>)
+                      -> Result<()> {
         try!(softmax::forward(context.context(),
                               self.algo,
                               self.mode,
                               T::ONE,
-                              tensor::Tensor::new(self.x_desc, x).unwrap(),
+                              x,
                               T::ZERO,
-                              tensor::TensorMut::new(self.y_desc, y).unwrap()));
+                              y));
         Ok(())
     }
 }
