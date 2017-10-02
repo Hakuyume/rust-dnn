@@ -8,6 +8,7 @@ use cudnn::tensor;
 use dnn::context;
 use dnn::convolution;
 use dnn::softmax;
+use dnn::activation;
 
 fn main() {
     let mut context = context::Context::new().unwrap();
@@ -26,8 +27,9 @@ fn main() {
             .unwrap();
 
         let mut conv = convolution::Convolution2D::new(c_out, c_in, 3, 1, 1, 1).unwrap();
-        let mut softmax =
-            softmax::Softmax::new(softmax::Algorithm::Accurate, softmax::Mode::Channel).unwrap();
+        let softmax = softmax::Softmax::new(softmax::Algorithm::Accurate, softmax::Mode::Channel)
+            .unwrap();
+        let relu = activation::Activation::new(Mode::Relu, true, 0.).unwrap();
 
         let x = memory::Memory::new(x_desc.len()).unwrap();
         let mut h = memory::Memory::new(y_desc.len()).unwrap();
@@ -45,5 +47,6 @@ fn main() {
 
         let mut y_host = vec![0.; y.len()];
         memory::memcpy(&mut y_host, &y).unwrap();
+        println!("{:?}", y_host[..16]);
     }
 }
