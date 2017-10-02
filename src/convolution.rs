@@ -75,7 +75,7 @@ impl<T: scalar::Float> Convolution2D<T> {
     }
 }
 
-impl<'a, T: scalar::Float + From<f32>> Convolution2DCompiled<'a, T> {
+impl<'a, T: scalar::Float> Convolution2DCompiled<'a, T> {
     pub fn foward(&self,
                   context: &mut context::Context,
                   x: &memory::Slice<T>,
@@ -83,13 +83,13 @@ impl<'a, T: scalar::Float + From<f32>> Convolution2DCompiled<'a, T> {
                   -> Result<()> {
         let (context, workspace) = try!(context.context_with_workspace(self.workspace_size));
         try!(convolution::forward(context,
-                                  T::from(1.),
+                                  T::ONE,
                                   tensor::Tensor::new(&self.x_desc, x).unwrap(),
                                   filter::Filter::new(&self.w_desc, &self.w).unwrap(),
                                   &self.conv_desc,
                                   self.algo,
                                   workspace,
-                                  T::from(0.),
+                                  T::ZERO,
                                   tensor::TensorMut::new(&self.y_desc, y).unwrap()));
         Ok(())
     }
