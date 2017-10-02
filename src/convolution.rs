@@ -30,17 +30,19 @@ impl<T: scalar::Float> Convolution2D<T> {
                stride: usize,
                dilate: usize)
                -> Result<Convolution2D<T>> {
-        let mut w_desc = try!(filter::Descriptor::new());
-        try!(w_desc.set_4d(tensor::Format::NCHW, c_out, c_in, ksize, ksize));
-        let w = try!(memory::Memory::new(w_desc.len()));
-        let mut conv_desc = try!(convolution::Descriptor::new());
-        try!(conv_desc.set_2d(pad,
-                              pad,
-                              stride,
-                              stride,
-                              dilate,
-                              dilate,
-                              convolution::Mode::Convolution));
+        let mut w_desc = filter::Descriptor::new()?;
+        w_desc
+            .set_4d(tensor::Format::NCHW, c_out, c_in, ksize, ksize)?;
+        let w = memory::Memory::new(w_desc.len())?;
+        let mut conv_desc = convolution::Descriptor::new()?;
+        conv_desc
+            .set_2d(pad,
+                    pad,
+                    stride,
+                    stride,
+                    dilate,
+                    dilate,
+                    convolution::Mode::Convolution)?;
         Ok(Convolution2D {
                w_desc,
                w,
@@ -54,7 +56,7 @@ impl<T: scalar::Float> Convolution2D<T> {
                               x_desc: &tensor::Descriptor<T>,
                               y_desc: &tensor::Descriptor<T>)
                               -> Result<(convolution::FwdAlgo, usize)> {
-        let params_new = (try!(x_desc.get_4d()), try!(y_desc.get_4d()));
+        let params_new = (x_desc.get_4d()?, y_desc.get_4d()?);
 
         if let Some(ForwardCache {
                         ref params,
@@ -66,12 +68,12 @@ impl<T: scalar::Float> Convolution2D<T> {
             }
         }
 
-        let perf_results = try!(convolution::find_forward_algorithm(context.context(),
-                                                                    x_desc,
-                                                                    &self.w_desc,
-                                                                    &self.conv_desc,
-                                                                    y_desc,
-                                                                    1));
+        let perf_results = convolution::find_forward_algorithm(context.context(),
+                                                               x_desc,
+                                                               &self.w_desc,
+                                                               &self.conv_desc,
+                                                               y_desc,
+                                                               1)?;
         let convolution::FwdAlgoPerf {
             algo,
             memory: workspace_size,
@@ -90,17 +92,17 @@ impl<T: scalar::Float> Convolution2D<T> {
                       x: tensor::Tensor<'a, T>,
                       y: tensor::TensorMut<'a, T>)
                       -> Result<()> {
-        let (algo, workspace_size) = try!(self.find_forward_algorithm(context, x.desc, y.desc));
-        let (context, workspace) = try!(context.context_with_workspace(workspace_size));
-        try!(convolution::forward(context,
-                                  T::ONE,
-                                  x,
-                                  filter::Filter::new(&self.w_desc, &self.w),
-                                  &self.conv_desc,
-                                  algo,
-                                  workspace,
-                                  T::ZERO,
-                                  y));
+        let (algo, workspace_size) = self.find_forward_algorithm(context, x.desc, y.desc)?;
+        let (context, workspace) = context.context_with_workspace(workspace_size)?;
+        convolution::forward(context,
+                             T::ONE,
+                             x,
+                             filter::Filter::new(&self.w_desc, &self.w),
+                             &self.conv_desc,
+                             algo,
+                             workspace,
+                             T::ZERO,
+                             y)?;
         Ok(())
     }
 }

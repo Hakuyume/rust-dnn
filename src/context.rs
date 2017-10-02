@@ -12,8 +12,8 @@ pub struct Context {
 
 impl Context {
     pub fn new() -> Result<Context> {
-        let context = try!(context::Context::new());
-        let workspace = try!(memory::Memory::new(0));
+        let context = context::Context::new()?;
+        let workspace = memory::Memory::new(0)?;
         Ok(Context { context, workspace })
     }
 
@@ -25,7 +25,7 @@ impl Context {
                                   size: usize)
                                   -> Result<(&mut context::Context, &mut slice::Slice<u8>)> {
         if self.workspace.len() < size {
-            self.workspace = try!(memory::Memory::new(size));
+            self.workspace = memory::Memory::new(size)?;
         }
         Ok((&mut self.context, &mut self.workspace[..size]))
     }
