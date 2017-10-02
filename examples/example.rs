@@ -25,7 +25,7 @@ fn main() {
         let conv = conv.compile(&mut context, &x_desc, &y_desc).unwrap();
 
         let softmax = softmax::Softmax::new(cudnn::softmax::Algorithm::Accurate,
-                                            cudnn::softmax::Algorithm::Channel)
+                                            cudnn::softmax::Mode::Channel)
                 .unwrap();
         let softmax = softmax.compile(&mut context, &x_desc, &y_desc).unwrap();
 
