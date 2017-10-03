@@ -59,16 +59,17 @@ impl ReLU<c_float> {
                                x: tensor::TensorMut<'a, c_float>)
                                -> Result<()> {
         let (grid, block) = get_grid_block(x.mem.len());
-        let x = x.mem.as_mut_ptr();
+        let x_ptr = x.mem.as_mut_ptr();
         let len = x.mem.len() as size_t;
         unsafe {
             misc::launch_kernel(relu_forward_inplace_f as *const c_void,
                                 grid,
                                 block,
-                                &mut [&x as *const *mut c_float as *mut c_void,
+                                &mut [&x_ptr as *const *mut c_float as *mut c_void,
                                       &len as *const size_t as *mut c_void],
                                 0,
                                 None)?
         }
+        Ok(())
     }
 }
