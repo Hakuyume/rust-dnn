@@ -1,15 +1,15 @@
 extern crate cuda;
 extern crate cudnn;
-extern crate dnn;
+extern crate nn;
 
 use cuda::slice;
 use cuda::memory;
 use cudnn::tensor;
 
-use dnn::context;
-use dnn::convolution;
-use dnn::softmax;
-use dnn::activation;
+use nn::context;
+use nn::convolution;
+use nn::softmax;
+use nn::activation;
 
 fn dump(mem: &slice::Slice<f32>, len: usize) {
     let mut host = vec![0.; len];

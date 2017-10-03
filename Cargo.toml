@@ -1,5 +1,5 @@
 [package]
-name = "dnn"
+name = "nn"
 version = "0.1.0"
 authors = ["Toru Ogawa <Hakuyume@users.noreply.github.com>"]
 
