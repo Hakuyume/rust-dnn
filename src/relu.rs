@@ -55,7 +55,7 @@ impl ReLU<c_float> {
     }
 
     pub fn forward_inplace<'a>(&self,
-                               context: &mut context::Context,
+                               _: &mut context::Context,
                                x: tensor::TensorMut<'a, c_float>)
                                -> Result<()> {
         let (grid, block) = get_grid_block(x.mem.len());
