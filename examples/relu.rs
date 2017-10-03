@@ -10,7 +10,7 @@ use nn::relu;
 fn main() {
     let mut context = context::Context::new().unwrap();
 
-    let (n, c, h, w) = (1, 16, 1, 1) = (1, 16, 1, 1);
+    let (n, c, h, w) = (1, 16, 1, 1);
 
     let mut x_desc = tensor::Descriptor::new().unwrap();
     x_desc.set_4d(tensor::Format::NCHW, n, c, h, w).unwrap();
