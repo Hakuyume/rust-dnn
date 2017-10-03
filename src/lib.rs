@@ -1,3 +1,4 @@
+extern crate libc;
 extern crate cuda;
 extern crate cudnn;
 
@@ -8,4 +9,5 @@ pub mod context;
 
 pub mod convolution;
 pub mod softmax;
-pub mod activation;
+
+pub mod relu;
