@@ -2,16 +2,16 @@ use libc::c_float;
 
 use cuda::misc;
 
-pub enum Type {
+pub enum ScalarType {
     Float,
 }
 
 pub trait Scalar {
-    const TYPE: Type;
+    const TYPE: ScalarType;
 }
 
 impl Scalar for c_float {
-    const TYPE: Type = Type::Float;
+    const TYPE: ScalarType = ScalarType::Float;
 }
 
 fn calc_grid_block(len: usize) -> (misc::Dim3, misc::Dim3) {

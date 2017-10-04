@@ -16,7 +16,7 @@ extern "C" {
 
 pub fn relu_forward_inplace<T: Scalar>(x: &mut slice::Slice<T>) -> Result<()> {
     let func = match T::TYPE {
-        Type::Float => relu_forward_inplace_f as *const c_void,
+        ScalarType::Float => relu_forward_inplace_f as *const c_void,
     };
     let (grid, block) = calc_grid_block(x.len());
     let (x, len) = (x.as_mut_ptr(), x.len() as size_t);
