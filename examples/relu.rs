@@ -1,5 +1,7 @@
 extern crate rand;
+
 use rand::Rng;
+use rand::distributions::IndependentSample;
 
 extern crate cuda;
 extern crate cudnn;
@@ -12,7 +14,8 @@ fn main() {
     let mut x = memory::Memory::new(16).unwrap();
     {
         let mut rng = rand::thread_rng();
-        let host: Vec<f32> = (0..x.len()).map(|_| rng.gen()).collect();
+        let dist = rand::distributions::Range::new(-1., 1.);
+        let host: Vec<f32> = (0..x.len()).map(|_| dist.ind_sample(&mut rng).collect();
         memory::memcpy(&mut x, &host).unwrap();
     }
 
