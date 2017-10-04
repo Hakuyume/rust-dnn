@@ -29,8 +29,10 @@ impl<T: scalar::Float> Softmax<T> {
                       x: tensor::Tensor<'a, T>,
                       y: tensor::TensorMut<'a, T>)
                       -> Result<()> {
-        let (context, _) = context.cudnn(0)?;
-        softmax::forward(context, self.algo, self.mode, T::ONE, x, T::ZERO, y)?;
+        {
+            let (context, _) = context.cudnn(0)?;
+            softmax::forward(context, self.algo, self.mode, T::ONE, x, T::ZERO, y)?;
+        }
         Ok(())
     }
 }
