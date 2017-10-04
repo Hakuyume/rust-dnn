@@ -13,7 +13,7 @@ pub struct Context {
 impl Context {
     pub fn new() -> Result<Context> {
         let workspace = memory::Memory::new(0)?;
-        let cudnn = context::Context::new()?;
+        let cudnn = cudnn::context::Context::new()?;
         Ok(Context { workspace, cudnn })
     }
 
@@ -21,6 +21,7 @@ impl Context {
         if self.workspace.len() < size {
             self.workspace = memory::Memory::new(size)?;
         }
+        Ok(())
     }
 
     pub fn workspace(&mut self, size: usize) -> Result<&mut slice::Slice<u8>> {
@@ -28,8 +29,10 @@ impl Context {
         Ok(&mut self.workspace[..size])
     }
 
-    pub fn cudnn(&mut self, size: usize) -> Result<(&mut context::Context, &mut slice::Slice<u8>)> {
+    pub fn cudnn(&mut self,
+                 size: usize)
+                 -> Result<(&mut cudnn::context::Context, &mut slice::Slice<u8>)> {
         self.alloc_workspace(size)?;
-        Ok((&mut self.context, &mut self.workspace[..size]))
+        Ok((&mut self.cudnn, &mut self.workspace[..size]))
     }
 }

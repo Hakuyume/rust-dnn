@@ -4,6 +4,7 @@ use cudnn::scalar;
 use cudnn::tensor;
 use cudnn::filter;
 
+use cudnn;
 use cudnn::convolution;
 
 use Result;
