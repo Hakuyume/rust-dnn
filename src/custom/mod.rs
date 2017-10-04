@@ -2,12 +2,12 @@ use libc::c_float;
 
 use cuda::misc;
 
-pub trait Scalar {
-    const TYPE: Type;
+pub enum Type {
+    Float,
 }
 
-enum Type {
-    Float,
+pub trait Scalar {
+    const TYPE: Type;
 }
 
 impl Scalar for c_float {
