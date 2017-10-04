@@ -12,9 +12,8 @@ fn main() {
     let mut x = memory::Memory::new(16).unwrap();
     {
         let mut rng = rand::thread_rng();
-        for x in x.iter_mut() {
-            *x = rng.gen::<f32>();
-        }
+        let host: Vec<f32> = (0..x.len()).map(|_| rng.gen()).collect();
+        memory::memcpy(&mut x, &host).unwrap();
     }
 
     {
