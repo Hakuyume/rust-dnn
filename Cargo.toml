@@ -2,8 +2,12 @@
 name = "nn"
 version = "0.1.0"
 authors = ["Toru Ogawa <Hakuyume@users.noreply.github.com>"]
+build = "build.rs"
 
 [dependencies]
 libc = "0.2"
 cuda = { git = "https://github.com/Hakuyume/rust-cuda" }
 cudnn = { git = "https://github.com/Hakuyume/rust-cuda" }
+
+[build-depandencies]
+nvcc = { git = "https://github.com/Hakuyume/rust-cuda" }
