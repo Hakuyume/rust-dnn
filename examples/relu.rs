@@ -15,7 +15,7 @@ fn main() {
     {
         let mut rng = rand::thread_rng();
         let dist = rand::distributions::Range::new(-1., 1.);
-        let host: Vec<f32> = (0..x.len()).map(|_| dist.ind_sample(&mut rng).collect();
+        let host: Vec<f32> = (0..x.len()).map(|_| dist.ind_sample(&mut rng)).collect();
         memory::memcpy(&mut x, &host).unwrap();
     }
 
