@@ -52,12 +52,11 @@ impl<T: scalar::Float> Convolution2D<T> {
     }
 
     fn find_forward_algorithm(&mut self,
-                              context: &mut context::Context,
+                              context: &mut cudnn::context::Context,
                               x_desc: &tensor::Descriptor<T>,
                               y_desc: &tensor::Descriptor<T>)
                               -> Result<(convolution::FwdAlgo, usize)> {
         let params_new = (x_desc.get_4d()?, y_desc.get_4d()?);
-
         if let Some(ForwardCache {
                         ref params,
                         algo,
@@ -68,7 +67,7 @@ impl<T: scalar::Float> Convolution2D<T> {
             }
         }
 
-        let perf_results = convolution::find_forward_algorithm(context.context(),
+        let perf_results = convolution::find_forward_algorithm(context,
                                                                x_desc,
                                                                &self.w_desc,
                                                                &self.conv_desc,
@@ -92,8 +91,10 @@ impl<T: scalar::Float> Convolution2D<T> {
                       x: tensor::Tensor<'a, T>,
                       y: tensor::TensorMut<'a, T>)
                       -> Result<()> {
+        let (context, _) = context.cudnn(0)?;
         let (algo, workspace_size) = self.find_forward_algorithm(context, x.desc, y.desc)?;
-        let (context, workspace) = context.context_with_workspace(workspace_size)?;
+
+        let (context, workspace) = context.cudnn(workspace_size)?;
         convolution::forward(context,
                              T::ONE,
                              x,

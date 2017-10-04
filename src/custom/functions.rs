@@ -1,0 +1,33 @@
+use libc::{c_float, c_void, size_t};
+
+use cuda::slice;
+use cuda::misc;
+
+use Result;
+
+use super::Scalar;
+use super::Type;
+use super::calc_grid_block;
+
+#[link(name = "custom_kernel")]
+extern "C" {
+    fn relu_forward_inplace_f(x: *mut c_float, len: size_t);
+}
+
+pub fn relu_forward_inplace<T: Scalar>(x: &mut slice::Slice<T>) -> Result<()> {
+    let func: *const c_void = match T::TYPE {
+        Type::Float => relu_forward_inplace_f,
+    };
+    let (grid, block) = calc_grid_block(x.len());
+    let (x, len) = (x.as_mut_ptr(), x.len() as size_t);
+    unsafe {
+        misc::launch_kernel(func,
+                            grid,
+                            block,
+                            &mut [&x as *const *mut T as *mut c_void,
+                                  &len as *const size_t as *mut c_void],
+                            0,
+                            None)?
+    }
+    Ok(())
+}
