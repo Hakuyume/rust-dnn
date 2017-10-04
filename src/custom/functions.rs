@@ -6,7 +6,7 @@ use cuda::misc;
 use Result;
 
 use super::Scalar;
-use super::Type;
+use super::ScalarType;
 use super::calc_grid_block;
 
 #[link(name = "custom_kernel")]
