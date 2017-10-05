@@ -13,7 +13,7 @@ impl Workspace {
         Workspace { mem: None }
     }
 
-    pub fn get<T>(&mut self, len: usize) -> Result<&mut Slice<T>> {
+    pub fn get<T>(&mut self, len: usize) -> Result<&mut slice::Slice<T>> {
         let size = len * mem::size_of::<T>();
 
         let mem = {
