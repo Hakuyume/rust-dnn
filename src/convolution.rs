@@ -1,14 +1,14 @@
 use cuda::memory;
 
 use cudnn::scalar;
+use cudnn::context;
 use cudnn::tensor;
 use cudnn::filter;
 
-use cudnn;
 use cudnn::convolution;
 
 use Result;
-use context;
+use workspace;
 
 pub struct Convolution2D<T: scalar::Float> {
     w_desc: filter::Descriptor<T>,
@@ -53,7 +53,7 @@ impl<T: scalar::Float> Convolution2D<T> {
     }
 
     fn find_forward_algorithm(&mut self,
-                              context: &mut cudnn::context::Context,
+                              context: &mut context::Context,
                               x_desc: &tensor::Descriptor<T>,
                               y_desc: &tensor::Descriptor<T>)
                               -> Result<(convolution::FwdAlgo, usize)> {
@@ -89,25 +89,20 @@ impl<T: scalar::Float> Convolution2D<T> {
 
     pub fn foward<'a>(&mut self,
                       context: &mut context::Context,
+                      workspace: &mut workspace::Workspace,
                       x: tensor::Tensor<'a, T>,
                       y: tensor::TensorMut<'a, T>)
                       -> Result<()> {
-        let (algo, workspace_size) = {
-            let (context, _) = context.cudnn(0)?;
-            self.find_forward_algorithm(context, x.desc, y.desc)?
-        };
-        {
-            let (context, workspace) = context.cudnn(workspace_size)?;
-            convolution::forward(context,
-                                 T::ONE,
-                                 x,
-                                 filter::Filter::new(&self.w_desc, &self.w),
-                                 &self.conv_desc,
-                                 algo,
-                                 workspace,
-                                 T::ZERO,
-                                 y)?;
-        }
+        let (algo, workspace_size) = self.find_forward_algorithm(context, x.desc, y.desc)?;
+        convolution::forward(context,
+                             T::ONE,
+                             x,
+                             filter::Filter::new(&self.w_desc, &self.w),
+                             &self.conv_desc,
+                             algo,
+                             workspace.get(workspace_size)?,
+                             T::ZERO,
+                             y)?;
         Ok(())
     }
 }

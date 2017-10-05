@@ -1,9 +1,8 @@
 use libc::{c_float, c_void, size_t};
 
+use cuda::Result;
 use cuda::slice;
 use cuda::misc;
-
-use Result;
 
 use super::Scalar;
 use super::ScalarType;

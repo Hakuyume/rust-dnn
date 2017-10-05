@@ -1,13 +1,12 @@
 use std::marker;
 
+use cudnn::Result;
 use cudnn::scalar;
+use cudnn::context;
 use cudnn::tensor;
 
 use cudnn::softmax;
 pub use cudnn::softmax::{Algorithm, Mode};
-
-use Result;
-use context;
 
 pub struct Softmax<T: scalar::Float> {
     algo: Algorithm,
@@ -30,7 +29,6 @@ impl<T: scalar::Float> Softmax<T> {
                       y: tensor::TensorMut<'a, T>)
                       -> Result<()> {
         {
-            let (context, _) = context.cudnn(0)?;
             softmax::forward(context, self.algo, self.mode, T::ONE, x, T::ZERO, y)?;
         }
         Ok(())
