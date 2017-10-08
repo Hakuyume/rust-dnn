@@ -8,7 +8,6 @@ use super::Scalar;
 use super::ScalarType;
 use super::calc_grid_block;
 
-#[link(name = "custom_kernel")]
 extern "C" {
     fn relu_forward_inplace_f(x: *mut c_float, len: size_t);
 }
