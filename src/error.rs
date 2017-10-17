@@ -24,7 +24,10 @@ impl error::Error for Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+        match *self {
+            Error::Cuda(ref err) => err.fmt(f),
+            Error::Cudnn(ref err) => err.fmt(f),
+        }
     }
 }
 
