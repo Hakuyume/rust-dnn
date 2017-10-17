@@ -4,30 +4,36 @@ extern crate nn;
 extern crate rand;
 
 use cuda::memory;
+use cuda::slice;
 use nn::custom;
 
 use rand::distributions::IndependentSample;
 
-fn main() {
-    let mut x = memory::Memory::new(16).unwrap();
-    {
-        let mut rng = rand::thread_rng();
-        let dist = rand::distributions::Range::new(-1., 1.);
-        let host: Vec<f32> = (0..x.len()).map(|_| dist.ind_sample(&mut rng)).collect();
-        memory::memcpy(&mut x, &host).unwrap();
-    }
+fn random(len: usize) -> memory::Memory<f32> {
+    let mut rng = rand::thread_rng();
+    let dist = rand::distributions::Range::new(-1., 1.);
+    let host: Vec<_> = (0..len).map(|_| dist.ind_sample(&mut rng)).collect();
+    let mut device = memory::Memory::new(len).unwrap();
+    memory::memcpy(&mut device, &host).unwrap();
+    device
+}
 
-    {
-        let mut host = vec![0.; x.len()];
-        memory::memcpy(&mut host, &x).unwrap();
-        println!("{:?}", &host);
-    }
+fn dump(mem: &slice::Slice<f32>) {
+    let mut host = vec![0.; mem.len()];
+    memory::memcpy(&mut host, &mem).unwrap();
+    println!("{:?}", &host);
+}
+
+fn main() {
+    let mut x = random(16);
+    dump(&x);
 
     custom::relu_forward_inplace(&mut x).unwrap();
+    dump(&x);
 
-    {
-        let mut host = vec![0.; x.len()];
-        memory::memcpy(&mut host, &x).unwrap();
-        println!("{:?}", &host);
-    }
+    let mut dy = random(x.len());
+    dump(&dy);
+
+    custom::relu_backward_inplace(&x, &mut dy).unwrap();
+    dump(&dy);
 }
