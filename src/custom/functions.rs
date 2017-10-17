@@ -31,7 +31,7 @@ pub fn relu_forward_inplace<T: Scalar>(x: &mut slice::Slice<T>) -> Result<()> {
 }
 
 extern "C" {
-    fn relu_backward_inplace_f(x: *mut c_float, len: size_t);
+    fn relu_backward_inplace_f(y: *const c_float, dy: *mut c_float, len: size_t);
 }
 
 pub fn relu_backward_inplace<T: Scalar>(y: &slice::Slice<T>,
