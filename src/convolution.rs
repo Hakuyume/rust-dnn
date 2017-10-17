@@ -14,13 +14,6 @@ pub struct Convolution2D<T: scalar::Float> {
     w_desc: filter::Descriptor<T>,
     w: memory::Memory<T>,
     conv_desc: convolution::Descriptor<T>,
-    forward_cache: Option<ForwardCache>,
-}
-
-struct ForwardCache {
-    params: (tensor::Param4D, tensor::Param4D),
-    algo: convolution::FwdAlgo,
-    workspace_size: usize,
 }
 
 impl<T: scalar::Float> Convolution2D<T> {
@@ -48,52 +41,27 @@ impl<T: scalar::Float> Convolution2D<T> {
                w_desc,
                w,
                conv_desc,
-               forward_cache: None,
            })
     }
 
-    fn find_forward_algorithm(&mut self,
-                              context: &mut context::Context,
-                              x_desc: &tensor::Descriptor<T>,
-                              y_desc: &tensor::Descriptor<T>)
-                              -> Result<(convolution::FwdAlgo, usize)> {
-        let params_new = (x_desc.get_4d()?, y_desc.get_4d()?);
-        if let Some(ForwardCache {
-                        ref params,
-                        algo,
-                        workspace_size,
-                    }) = self.forward_cache {
-            if &params_new == params {
-                return Ok((algo, workspace_size));
-            }
-        }
-
-        let perf_results = convolution::find_forward_algorithm(context,
-                                                               x_desc,
-                                                               &self.w_desc,
-                                                               &self.conv_desc,
-                                                               y_desc,
-                                                               1)?;
-        let convolution::FwdAlgoPerf {
-            algo,
-            memory: workspace_size,
-            ..
-        } = perf_results[0];
-        self.forward_cache = Some(ForwardCache {
-                                      params: params_new,
-                                      algo,
-                                      workspace_size,
-                                  });
-        Ok((algo, workspace_size))
-    }
-
-    pub fn foward<'a>(&mut self,
+    pub fn foward<'a>(&self,
                       context: &mut context::Context,
                       workspace: &mut workspace::Workspace,
                       x: tensor::Tensor<'a, T>,
                       y: tensor::TensorMut<'a, T>)
                       -> Result<()> {
-        let (algo, workspace_size) = self.find_forward_algorithm(context, x.desc(), y.desc())?;
+        let algo = convolution::get_forward_algorithm(context,
+                                                      x.desc(),
+                                                      &self.w_desc,
+                                                      &self.conv_desc,
+                                                      y.desc(),
+                                                      convolution::FwdPreference::PreferFastest)?;
+        let workspace_size = convolution::get_forward_workspace_size(context,
+                                                                     x.desc(),
+                                                                     &self.w_desc,
+                                                                     &self.conv_desc,
+                                                                     y.desc(),
+                                                                     algo)?;
         convolution::forward(context,
                              T::ONE,
                              x,
