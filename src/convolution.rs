@@ -93,7 +93,7 @@ impl<T: scalar::Float> Convolution2D<T> {
                       x: tensor::Tensor<'a, T>,
                       y: tensor::TensorMut<'a, T>)
                       -> Result<()> {
-        let (algo, workspace_size) = self.find_forward_algorithm(context, x.desc, y.desc)?;
+        let (algo, workspace_size) = self.find_forward_algorithm(context, x.desc(), y.desc())?;
         convolution::forward(context,
                              T::ONE,
                              x,
