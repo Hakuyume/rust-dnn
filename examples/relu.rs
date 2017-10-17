@@ -1,13 +1,12 @@
-extern crate rand;
-
-use rand::distributions::IndependentSample;
-
 extern crate cuda;
 extern crate cudnn;
 extern crate nn;
+extern crate rand;
 
 use cuda::memory;
 use nn::custom;
+
+use rand::distributions::IndependentSample;
 
 fn main() {
     let mut x = memory::Memory::new(16).unwrap();
