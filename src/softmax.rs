@@ -26,4 +26,23 @@ impl Softmax {
         }
         Ok(())
     }
+
+    pub fn backward<'a, T: scalar::Float>(&self,
+                                          context: &mut context::Context,
+                                          y: tensor::Tensor<'a, T>,
+                                          dy: tensor::Tensor<'a, T>,
+                                          dx: tensor::TensorMut<'a, T>)
+                                          -> Result<()> {
+        {
+            softmax::backward(context,
+                              self.algo,
+                              self.mode,
+                              T::ONE,
+                              y,
+                              Some(dy),
+                              T::ZERO,
+                              dx)?;
+        }
+        Ok(())
+    }
 }
