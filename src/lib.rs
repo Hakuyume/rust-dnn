@@ -10,4 +10,5 @@ pub mod workspace;
 pub mod convolution;
 pub mod softmax;
 
-pub mod custom;
+mod misc;
+pub mod relu;

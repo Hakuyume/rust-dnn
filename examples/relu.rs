@@ -1,8 +1,7 @@
 extern crate cuda;
-extern crate cudnn;
 extern crate nn;
 
-use nn::custom;
+use nn::relu;
 
 mod utils;
 
@@ -11,13 +10,13 @@ fn main() {
         let mut x = utils::random(16)?;
         utils::dump(&x)?;
 
-        custom::relu_forward_inplace(&mut x)?;
+        relu::forward(&mut x)?;
         utils::dump(&x)?;
 
         let mut dy = utils::random(x.len())?;
         utils::dump(&dy)?;
 
-        custom::relu_backward_inplace(&x, &mut dy)?;
+        relu::backward(&x, &mut dy)?;
         utils::dump(&dy)?;
         Ok(())
     })
