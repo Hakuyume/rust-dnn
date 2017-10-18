@@ -7,8 +7,8 @@ use cuda::misc;
 use misc::get_grid_block;
 
 extern "C" {
-    fn relu_forward_f(x: *mut c_float, len: size_t);
-    fn relu_backward_f(y: *const c_float, dy: *mut c_float, len: size_t);
+    fn relu_forward_f(len: size_t, x: *mut c_float);
+    fn relu_backward_f(len: size_t, y: *const c_float, dy: *mut c_float);
 }
 
 pub trait Scalar {
@@ -28,8 +28,8 @@ pub fn forward<T: Scalar>(x: &mut slice::Slice<T>) -> Result<()> {
         misc::launch_kernel(T::FORWARD,
                             grid,
                             block,
-                            &mut [&x as *const *mut T as *mut c_void,
-                                  &len as *const size_t as *mut c_void],
+                            &mut [&len as *const size_t as *mut c_void,
+                                  &x as *const *mut T as *mut c_void],
                             0,
                             None)?
     }
@@ -44,9 +44,9 @@ pub fn backward<T: Scalar>(y: &slice::Slice<T>, dy: &mut slice::Slice<T>) -> Res
         misc::launch_kernel(T::BACKWARD,
                             grid,
                             block,
-                            &mut [&y as *const *const T as *mut c_void,
-                                  &dy as *const *mut T as *mut c_void,
-                                  &len as *const size_t as *mut c_void],
+                            &mut [&len as *const size_t as *mut c_void,
+                                  &y as *const *const T as *mut c_void,
+                                  &dy as *const *mut T as *mut c_void],
                             0,
                             None)?
     }
