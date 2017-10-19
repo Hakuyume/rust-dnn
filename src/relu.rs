@@ -23,13 +23,11 @@ impl Scalar for c_float {
 
 pub fn forward<T: Scalar>(x: &mut slice::Slice<T>) -> Result<()> {
     let (grid, block) = get_grid_block(x.len());
-    let (x, len) = (x.as_mut_ptr(), x.len() as size_t);
     unsafe {
         misc::launch_kernel(T::FORWARD,
                             grid,
                             block,
-                            &mut [&len as *const size_t as *mut c_void,
-                                  &x as *const *mut T as *mut c_void],
+                            &[&(x.len() as size_t), &(x.as_mut_ptr())],
                             0,
                             None)?
     }
@@ -39,14 +37,11 @@ pub fn forward<T: Scalar>(x: &mut slice::Slice<T>) -> Result<()> {
 pub fn backward<T: Scalar>(y: &slice::Slice<T>, dy: &mut slice::Slice<T>) -> Result<()> {
     assert_eq!(y.len(), dy.len());
     let (grid, block) = get_grid_block(y.len());
-    let (y, dy, len) = (y.as_ptr(), dy.as_mut_ptr(), y.len() as size_t);
     unsafe {
         misc::launch_kernel(T::BACKWARD,
                             grid,
                             block,
-                            &mut [&len as *const size_t as *mut c_void,
-                                  &y as *const *const T as *mut c_void,
-                                  &dy as *const *mut T as *mut c_void],
+                            &[&(y.len() as size_t), &y.as_ptr(), &dy.as_mut_ptr()],
                             0,
                             None)?
     }
