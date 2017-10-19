@@ -1,6 +1,5 @@
 use std::error;
 use std::fmt;
-use std::result;
 
 use cuda;
 use cudnn;
@@ -10,8 +9,6 @@ pub enum Error {
     Cuda(cuda::Error),
     Cudnn(cudnn::Error),
 }
-
-pub type Result<T> = result::Result<T, Error>;
 
 impl error::Error for Error {
     fn description(&self) -> &str {

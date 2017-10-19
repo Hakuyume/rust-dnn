@@ -1,23 +1,20 @@
-extern crate cuda;
 extern crate nn;
 
-use nn::relu;
+use nn::layer::InplaceLayer;
 
 mod utils;
 
 fn main() {
     utils::bench(|| {
-        let mut x = utils::random(16)?;
+        let mut context = nn::Context::new()?;
+
+        let mut x = utils::random((1, 16, 1, 1))?;
         utils::dump(&x)?;
 
-        relu::forward(&mut x)?;
+        let relu = nn::layer::ReLU::new();
+
+        relu.forward(&mut context, &mut x)?;
         utils::dump(&x)?;
-
-        let mut dy = utils::random(x.len())?;
-        utils::dump(&dy)?;
-
-        relu::backward(&x, &mut dy)?;
-        utils::dump(&dy)?;
         Ok(())
     })
             .unwrap();

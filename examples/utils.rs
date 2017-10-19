@@ -2,34 +2,34 @@ extern crate cuda;
 extern crate nn;
 extern crate rand;
 
+use self::cuda::memory;
+
 use std::cell;
 use std::default;
 use std::fmt;
 use std::sync;
 use std::time;
 
-use self::cuda::memory;
-use self::cuda::slice;
-use self::nn::Result;
-
 use self::rand::distributions::IndependentSample;
 
-pub fn dump<T>(device: &slice::Slice<T>) -> Result<()>
-    where T: Clone + default::Default + fmt::Debug
+pub fn dump<T>(x: &nn::Tensor<T>) -> nn::Result<()>
+    where T: Clone + default::Default + fmt::Debug + nn::Scalar
 {
-    let mut host = vec![T::default(); device.len()];
-    memory::memcpy(&mut host, &device)?;
+    let mut host = vec![T::default(); x.mem().len()];
+    memory::memcpy(&mut host, x.mem())?;
     println!("{:?}", &host);
     Ok(())
 }
 
-pub fn random(len: usize) -> Result<memory::Memory<f32>> {
+pub fn random(shape: (usize, usize, usize, usize)) -> nn::Result<nn::Tensor<f32>> {
+    let mut x = nn::Tensor::new(shape)?;
     let mut rng = rand::thread_rng();
     let dist = rand::distributions::Range::new(-1., 1.);
-    let host: Vec<_> = (0..len).map(|_| dist.ind_sample(&mut rng)).collect();
-    let mut device = memory::Memory::new(len)?;
-    memory::memcpy(&mut device, &host)?;
-    Ok(device)
+    let host: Vec<_> = (0..x.mem().len())
+        .map(|_| dist.ind_sample(&mut rng))
+        .collect();
+    memory::memcpy(&mut x.mem_mut(), &host)?;
+    Ok(x)
 }
 
 struct MemoryUsage {
@@ -37,27 +37,27 @@ struct MemoryUsage {
     peak: usize,
 }
 
-pub fn bench<T, F: FnOnce() -> Result<T>>(f: F) -> Result<T> {
+pub fn bench<T, F: FnOnce() -> nn::Result<T>>(f: F) -> nn::Result<T> {
     let memory_usage = sync::Arc::new(cell::RefCell::new(MemoryUsage {
                                                              current: 0,
                                                              peak: 0,
                                                          }));
     {
         let usage = memory_usage.clone();
-        memory::set_malloc_hook(move |_, size| {
-                                    let mut usage = usage.borrow_mut();
-                                    usage.current += size;
-                                    if usage.peak < usage.current {
-                                        usage.peak = usage.current;
-                                    }
-                                });
+        cuda::memory::set_malloc_hook(move |_, size| {
+                                          let mut usage = usage.borrow_mut();
+                                          usage.current += size;
+                                          if usage.peak < usage.current {
+                                              usage.peak = usage.current;
+                                          }
+                                      });
     }
     {
         let usage = memory_usage.clone();
-        memory::set_free_hook(move |_, size| {
-                                  let mut usage = usage.borrow_mut();
-                                  usage.current -= size;
-                              });
+        cuda::memory::set_free_hook(move |_, size| {
+                                        let mut usage = usage.borrow_mut();
+                                        usage.current -= size;
+                                    });
     }
     let time = time::SystemTime::now();
     let result = f();
