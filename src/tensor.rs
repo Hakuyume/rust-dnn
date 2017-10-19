@@ -6,7 +6,6 @@ use Result;
 use Scalar;
 
 pub struct Tensor<T: Scalar> {
-    shape: (usize, usize, usize, usize),
     mem: memory::Memory<T>,
     cudnn: tensor::Descriptor<T>,
 }
@@ -17,11 +16,7 @@ impl<T: Scalar> Tensor<T> {
         let mut cudnn = tensor::Descriptor::new()?;
         cudnn.set_4d(tensor::Format::NCHW, n, c, h, w)?;
         let mem = memory::Memory::new(cudnn.len())?;
-        Ok(Tensor {
-               shape: (n, c, h, w),
-               mem,
-               cudnn,
-           })
+        Ok(Tensor { mem, cudnn })
     }
 
     pub fn mem(&self) -> &slice::Slice<T> {
