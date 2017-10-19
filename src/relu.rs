@@ -41,7 +41,7 @@ pub fn backward<T: Scalar>(y: &slice::Slice<T>, dy: &mut slice::Slice<T>) -> Res
         misc::launch_kernel(T::BACKWARD,
                             grid,
                             block,
-                            &[&(y.len() as size_t), &y.as_ptr(), &dy.as_mut_ptr()],
+                            &[&(y.len() as size_t), &(y.as_ptr()), &(dy.as_mut_ptr())],
                             0,
                             None)?
     }
