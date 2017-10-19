@@ -14,7 +14,7 @@ extern "C" {
     fn relu_backward_f(len: size_t, y: *const c_float, dy: *mut c_float);
 }
 
-pub trait Scalar {
+pub trait Scalar: scalar::Scalar {
     const FORWARD: *const c_void;
     const BACKWARD: *const c_void;
 }
@@ -32,7 +32,7 @@ impl ReLU {
     }
 }
 
-impl<T: scalar::Scalar + Scalar> InplaceLayer<T> for ReLU {
+impl<T: Scalar> InplaceLayer<T> for ReLU {
     fn forward(&self, _: &mut Context, x: &mut Tensor<T>) -> Result<()> {
         let (grid, block) = get_grid_block(x.mem().len());
         unsafe {
