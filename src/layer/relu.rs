@@ -6,7 +6,7 @@ use cuda::memory::{Repr, ReprMut};
 
 use Result;
 use Context;
-use scalar;
+use Scalar;
 use Tensor;
 use layer::InplaceLayer;
 use misc::get_grid_block;
@@ -16,12 +16,12 @@ extern "C" {
     fn relu_backward_f(len: size_t, y: *const c_float, dy: *mut c_float);
 }
 
-pub trait Scalar: scalar::Scalar {
+pub trait ReLUScalar: Scalar {
     const FORWARD: *const c_void;
     const BACKWARD: *const c_void;
 }
 
-impl Scalar for c_float {
+impl ReLUScalar for c_float {
     const FORWARD: *const c_void = relu_forward_f as *const c_void;
     const BACKWARD: *const c_void = relu_backward_f as *const c_void;
 }
@@ -35,7 +35,7 @@ impl ReLU {
 }
 
 impl<T> InplaceLayer<T> for ReLU
-    where T: Scalar
+    where T: ReLUScalar
 {
     fn forward(&self, _: &mut Context, x: &mut Tensor<T>) -> Result<()> {
         let (grid, block) = get_grid_block(x.mem().len());
