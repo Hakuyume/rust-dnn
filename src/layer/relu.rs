@@ -2,6 +2,8 @@ use libc::{c_float, c_void, size_t};
 
 use cuda::misc;
 
+use cuda::memory::{Repr, ReprMut};
+
 use Result;
 use Context;
 use scalar;

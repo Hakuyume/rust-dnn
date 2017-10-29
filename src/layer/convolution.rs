@@ -69,14 +69,14 @@ impl<T: Scalar + scalar::Float> Layer<T> for Convolution2D<T> {
                                                                      &self.conv_desc,
                                                                      y.cudnn_desc(),
                                                                      algo)?;
-        let (context, workspace) = context.cudnn_with_workspace(workspace_size)?;
+        let (context, mut workspace) = context.cudnn_with_workspace(workspace_size)?;
         convolution::forward(context,
                              T::ONE,
                              x.cudnn_tensor(),
                              filter::Filter::new(&self.w_desc, &self.w),
                              &self.conv_desc,
                              algo,
-                             workspace,
+                             &mut workspace,
                              T::ZERO,
                              y.cudnn_tensor_mut())?;
         Ok(())

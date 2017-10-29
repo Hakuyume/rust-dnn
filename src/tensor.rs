@@ -1,5 +1,4 @@
 use cuda::memory;
-use cuda::slice;
 use cudnn::tensor;
 
 use Result;
@@ -24,11 +23,11 @@ impl<T: Scalar> Tensor<T> {
         self.shape
     }
 
-    pub fn mem(&self) -> &slice::Slice<T> {
+    pub fn mem(&self) -> &memory::Memory<T> {
         &self.mem
     }
 
-    pub fn mem_mut(&mut self) -> &mut slice::Slice<T> {
+    pub fn mem_mut(&mut self) -> &mut memory::Memory<T> {
         &mut self.mem
     }
 
