@@ -29,7 +29,7 @@ pub fn random(shape: (usize, usize, usize, usize)) -> nn::Result<nn::Tensor<f32>
     let host: Vec<_> = (0..x.mem().len())
         .map(|_| dist.ind_sample(&mut rng))
         .collect();
-    memory::memcpy(&mut x.mem_mut(), &host)?;
+    memory::memcpy(x.mem_mut(), &host)?;
     Ok(x)
 }
 
