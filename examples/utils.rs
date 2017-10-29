@@ -38,7 +38,9 @@ struct MemoryUsage {
     peak: usize,
 }
 
-pub fn bench<T, F: FnOnce() -> nn::Result<T>>(f: F) -> nn::Result<T> {
+pub fn bench<T, F>(f: F) -> nn::Result<T>
+    where F: FnOnce() -> nn::Result<T>
+{
     let memory_usage = sync::Arc::new(cell::RefCell::new(MemoryUsage {
                                                              current: 0,
                                                              peak: 0,

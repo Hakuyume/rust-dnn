@@ -34,7 +34,9 @@ impl ReLU {
     }
 }
 
-impl<T: Scalar> InplaceLayer<T> for ReLU {
+impl<T> InplaceLayer<T> for ReLU
+    where T: Scalar
+{
     fn forward(&self, _: &mut Context, x: &mut Tensor<T>) -> Result<()> {
         let (grid, block) = get_grid_block(x.mem().len());
         unsafe {

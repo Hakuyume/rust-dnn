@@ -11,13 +11,17 @@ use Scalar;
 use Tensor;
 use layer::Layer;
 
-pub struct Convolution2D<T: scalar::Float> {
+pub struct Convolution2D<T>
+    where T: scalar::Float
+{
     w_desc: filter::Descriptor<T>,
     w: memory::Memory<T>,
     conv_desc: convolution::Descriptor<T>,
 }
 
-impl<T: scalar::Float> Convolution2D<T> {
+impl<T> Convolution2D<T>
+    where T: scalar::Float
+{
     pub fn new(c_out: usize,
                c_in: usize,
                ksize: usize,
@@ -46,7 +50,9 @@ impl<T: scalar::Float> Convolution2D<T> {
     }
 }
 
-impl<T: Scalar + scalar::Float> Layer<T> for Convolution2D<T> {
+impl<T> Layer<T> for Convolution2D<T>
+    where T: Scalar + scalar::Float
+{
     fn out_shape(&self,
                  in_shape: (usize, usize, usize, usize))
                  -> Result<(usize, usize, usize, usize)> {

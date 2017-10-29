@@ -4,13 +4,17 @@ use cudnn::tensor;
 use Result;
 use Scalar;
 
-pub struct Tensor<T: Scalar> {
+pub struct Tensor<T>
+    where T: Scalar
+{
     shape: (usize, usize, usize, usize),
     mem: memory::Memory<T>,
     cudnn: tensor::Descriptor<T>,
 }
 
-impl<T: Scalar> Tensor<T> {
+impl<T> Tensor<T>
+    where T: Scalar
+{
     pub fn new(shape: (usize, usize, usize, usize)) -> Result<Tensor<T>> {
         let (n, c, h, w) = shape;
         let mut cudnn = tensor::Descriptor::new()?;

@@ -3,7 +3,9 @@ use Context;
 use Scalar;
 use Tensor;
 
-pub trait Layer<T: Scalar> {
+pub trait Layer<T>
+    where T: Scalar
+{
     fn out_shape(&self,
                  in_shape: (usize, usize, usize, usize))
                  -> Result<(usize, usize, usize, usize)>;
@@ -13,7 +15,9 @@ pub trait Layer<T: Scalar> {
 mod convolution;
 pub use self::convolution::Convolution2D;
 
-pub trait InplaceLayer<T: Scalar> {
+pub trait InplaceLayer<T>
+    where T: Scalar
+{
     fn forward(&self, context: &mut Context, x: &mut Tensor<T>) -> Result<()>;
 }
 
