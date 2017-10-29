@@ -44,6 +44,6 @@ impl<T> Tensor<T>
     }
 
     pub fn cudnn_tensor_mut<'a>(&'a mut self) -> tensor::TensorMut<'a, T> {
-        tensor::TensorMut::new(&mut self.cudnn, &mut self.mem)
+        tensor::TensorMut::new(&self.cudnn, &mut self.mem)
     }
 }
