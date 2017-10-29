@@ -11,8 +11,7 @@ pub type Result<T> = result::Result<T, Error>;
 mod context;
 pub use context::Context;
 
-mod scalar;
-pub use scalar::Scalar;
+pub use cudnn::scalar::Scalar;
 
 mod tensor;
 pub use tensor::Tensor;
