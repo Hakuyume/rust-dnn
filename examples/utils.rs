@@ -2,15 +2,16 @@ extern crate cuda;
 extern crate nn;
 extern crate rand;
 
-use self::cuda::memory;
-
 use std::cell;
 use std::default;
 use std::fmt;
 use std::sync;
 use std::time;
 
+use self::cuda::memory;
+
 use self::rand::distributions::IndependentSample;
+use self::memory::Repr;
 
 pub fn dump<T>(x: &nn::Tensor<T>) -> nn::Result<()>
     where T: Clone + default::Default + fmt::Debug + nn::Scalar
