@@ -65,7 +65,7 @@ impl<T> Layer<T> for Convolution2D<T>
                                                       &self.w_desc,
                                                       &self.conv_desc,
                                                       y.cudnn_desc(),
-                                                      convolution::FwdPreference::PreferFastest)?;
+                                                      cudnn::convolution::FwdPreference::PreferFastest)?;
         let workspace_size = cudnn::convolution::get_forward_workspace_size(context.cudnn(),
                                                                             x.cudnn_desc(),
                                                                             &self.w_desc,
