@@ -51,7 +51,7 @@ fn main() {
 
     let mnist = MNIST::new("mnist").unwrap();
     let mut x = vec![0.; x_desc.len()];
-    let mut t: Vec<f32> = vec![0.; yz_desc.len()];
+    let mut t = vec![0.; yz_desc.len()];
     for i in 0..BATCH_SIZE {
         let (image, label) = mnist.train.get(i);
         for k in 0..MNIST::SIZE * MNIST::SIZE {
@@ -90,6 +90,11 @@ fn main() {
 
     let mut z = vec![0.; yz_desc.len()];
     cuda::memory::memcpy(&mut z, &z_dev).unwrap();
+    println!("{}",
+             z.iter()
+                 .zip(&t)
+                 .map(|(z, t)| -z * t / (BATCH_SIZE as f32))
+                 .sum::<f32>());
     let dz: Vec<_> = t.iter().map(|t| -t / (BATCH_SIZE as f32)).collect();
 
     let mut dz_dev = cuda::memory::Memory::new(yz_desc.len()).unwrap();
