@@ -74,4 +74,8 @@ fn main() {
                                 0.,
                                 cudnn::tensor::TensorMut::new(&y_desc, &mut y_dev))
             .unwrap();
+
+    let mut y = vec![0.; y_desc.len()];
+    cuda::memory::memcpy(&mut y, &y_dev).unwrap();
+    println!("{:?}", &y);
 }
