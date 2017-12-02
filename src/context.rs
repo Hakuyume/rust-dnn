@@ -7,8 +7,8 @@ use self::memory::SliceMut;
 use Result;
 
 pub struct Context {
-    cudnn: cudnn::context::Context,
     workspace: Option<memory::Memory<u8>>,
+    cudnn: cudnn::context::Context,
 }
 
 impl Context {
