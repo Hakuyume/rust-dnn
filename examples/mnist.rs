@@ -51,7 +51,7 @@ fn main() {
 
     let mnist = MNIST::new("mnist").unwrap();
     let mut x = vec![0.; x_desc.len()];
-    let mut t = vec![0.; yz_desc.len()];
+    let mut t: Vec<f32> = vec![0.; yz_desc.len()];
     for i in 0..BATCH_SIZE {
         let (image, label) = mnist.train.get(i);
         for k in 0..MNIST::SIZE * MNIST::SIZE {
@@ -90,6 +90,23 @@ fn main() {
 
     let mut z = vec![0.; yz_desc.len()];
     cuda::memory::memcpy(&mut z, &z_dev).unwrap();
-    println!("{}",
-             z.iter().zip(&t).map(|(z, t)| -z * t).sum::<f32>() / (BATCH_SIZE as f32));
+    let dz: Vec<_> = t.iter().map(|t| -t / (BATCH_SIZE as f32)).collect();
+
+    let mut dz_dev = cuda::memory::Memory::new(yz_desc.len()).unwrap();
+    cuda::memory::memcpy(&mut dz_dev, &dz).unwrap();
+    let mut dy_dev = cuda::memory::Memory::new(yz_desc.len()).unwrap();
+
+    cudnn::softmax::backward(&mut context,
+                             cudnn::softmax::Algorithm::Log,
+                             cudnn::softmax::Mode::Channel,
+                             1.,
+                             cudnn::tensor::Tensor::new(&yz_desc, &z_dev),
+                             Some(cudnn::tensor::Tensor::new(&yz_desc, &dz_dev)),
+                             0.,
+                             cudnn::tensor::TensorMut::new(&yz_desc, &mut dy_dev))
+            .unwrap();
+
+    let mut dy = vec![0.; yz_desc.len()];
+    cuda::memory::memcpy(&mut dy, &dy_dev).unwrap();
+    println!("{:?}", dy);
 }
