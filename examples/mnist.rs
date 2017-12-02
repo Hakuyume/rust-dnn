@@ -81,7 +81,7 @@ fn main() {
     let mut t_dev = cuda::memory::Memory::new(t.len()).unwrap();
     cuda::memory::memcpy(&mut x_dev, &x).unwrap();
     cuda::memory::memcpy(&mut t_dev, &t).unwrap();
-    let w_dev = cuda::memory::Memory::new(w_desc.len()).unwrap();
+    let mut w_dev = cuda::memory::Memory::new(w_desc.len()).unwrap();
     let mut y_dev = cuda::memory::Memory::new(yz_desc.len()).unwrap();
     let mut z_dev = cuda::memory::Memory::new(yz_desc.len()).unwrap();
     let mut workspace =
@@ -119,7 +119,6 @@ fn main() {
         let mut dz_dev = cuda::memory::Memory::new(yz_desc.len()).unwrap();
         cuda::memory::memcpy(&mut dz_dev, &dz).unwrap();
         let mut dy_dev = cuda::memory::Memory::new(yz_desc.len()).unwrap();
-        let mut dw_dev = cuda::memory::Memory::new(w_desc.len()).unwrap();
 
         cudnn::softmax::backward(&mut context,
                                  cudnn::softmax::Algorithm::Log,
@@ -131,14 +130,14 @@ fn main() {
                                  cudnn::tensor::TensorMut::new(&yz_desc, &mut dy_dev))
                 .unwrap();
         cudnn::convolution::backward_filter(&mut context,
-                                            1.,
+                                            -1e-3,
                                             cudnn::tensor::Tensor::new(&x_desc, &x_dev),
                                             cudnn::tensor::Tensor::new(&yz_desc, &dy_dev),
                                             &conv_desc,
                                             bwd_filter_algo,
                                             &mut workspace,
-                                            0.,
-                                            cudnn::filter::FilterMut::new(&w_desc, &mut dw_dev))
+                                            1.,
+                                            cudnn::filter::FilterMut::new(&w_desc, &mut w_dev))
                 .unwrap();
     }
 }
