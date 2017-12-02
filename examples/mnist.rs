@@ -56,7 +56,7 @@ fn main() {
         let (image, label) = mnist.train.get(i);
         for k in 0..MNIST::SIZE * MNIST::SIZE {
             x[i * MNIST::SIZE * MNIST::SIZE + k] = image[k] as f32;
-            t[i * MNIST::SIZE * MNIST::SIZE + label as usize] = 1.;
+            t[i * N_CLASSES + label as usize] = 1.;
         }
     }
 
