@@ -80,7 +80,7 @@ fn main() {
                             cudnn::softmax::Algorithm::Fast,
                             cudnn::softmax::Mode::Channel,
                             1.,
-                            cudnn::tensor::Tensor::new(&x_desc, &x_dev),
+                            cudnn::tensor::Tensor::new(&yz_desc, &y_dev),
                             0.,
                             cudnn::tensor::TensorMut::new(&yz_desc, &mut z_dev))
             .unwrap();
