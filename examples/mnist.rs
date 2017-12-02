@@ -1,3 +1,5 @@
+use std::cmp;
+
 extern crate cuda;
 extern crate cudnn;
 extern crate nn;
@@ -33,7 +35,7 @@ fn main() {
                                                            1,
                                                            cudnn::convolution::Mode::Convolution)
             .unwrap();
-    let algo =
+    let fwd_algo =
         cudnn::convolution::get_forward_algorithm(&mut context,
                                                   &x_desc,
                                                   &w_desc,
@@ -41,13 +43,28 @@ fn main() {
                                                   &yz_desc,
                                                   cudnn::convolution::FwdPreference::PreferFastest)
                 .unwrap();
-    let workspace_size = cudnn::convolution::get_forward_workspace_size(&mut context,
-                                                                        &x_desc,
-                                                                        &w_desc,
-                                                                        &conv_desc,
-                                                                        &yz_desc,
-                                                                        algo)
+    let fwd_workspace_size = cudnn::convolution::get_forward_workspace_size(&mut context,
+                                                                            &x_desc,
+                                                                            &w_desc,
+                                                                            &conv_desc,
+                                                                            &yz_desc,
+                                                                            fwd_algo)
             .unwrap();
+    let bwd_filter_algo =
+        cudnn::convolution::get_backward_filter_algorithm(&mut context,
+                                                          &x_desc,
+                                                          &yz_desc,
+                                                          &conv_desc,
+                                                          &w_desc,
+                                                          cudnn::convolution::BwdFilterPreference::PreferFastest).unwrap();
+    let bwd_filter_workspace_size =
+        cudnn::convolution::get_backward_filter_workspace_size(&mut context,
+                                                               &x_desc,
+                                                               &yz_desc,
+                                                               &conv_desc,
+                                                               &w_desc,
+                                                               bwd_filter_algo)
+                .unwrap();
 
     let mnist = MNIST::new("mnist").unwrap();
     let mut x = vec![0.; x_desc.len()];
@@ -67,51 +84,61 @@ fn main() {
     let w_dev = cuda::memory::Memory::new(w_desc.len()).unwrap();
     let mut y_dev = cuda::memory::Memory::new(yz_desc.len()).unwrap();
     let mut z_dev = cuda::memory::Memory::new(yz_desc.len()).unwrap();
-    let mut workspace = cuda::memory::Memory::new(workspace_size).unwrap();
+    let mut workspace =
+        cuda::memory::Memory::new(cmp::max(fwd_workspace_size, bwd_filter_workspace_size)).unwrap();
 
-    cudnn::convolution::forward(&mut context,
+    for _ in 0..10 {
+        cudnn::convolution::forward(&mut context,
+                                    1.,
+                                    cudnn::tensor::Tensor::new(&x_desc, &x_dev),
+                                    cudnn::filter::Filter::new(&w_desc, &w_dev),
+                                    &conv_desc,
+                                    fwd_algo,
+                                    &mut workspace,
+                                    0.,
+                                    cudnn::tensor::TensorMut::new(&yz_desc, &mut y_dev))
+                .unwrap();
+        cudnn::softmax::forward(&mut context,
+                                cudnn::softmax::Algorithm::Log,
+                                cudnn::softmax::Mode::Channel,
                                 1.,
-                                cudnn::tensor::Tensor::new(&x_desc, &x_dev),
-                                cudnn::filter::Filter::new(&w_desc, &w_dev),
-                                &conv_desc,
-                                algo,
-                                &mut workspace,
+                                cudnn::tensor::Tensor::new(&yz_desc, &y_dev),
                                 0.,
-                                cudnn::tensor::TensorMut::new(&yz_desc, &mut y_dev))
-            .unwrap();
-    cudnn::softmax::forward(&mut context,
-                            cudnn::softmax::Algorithm::Log,
-                            cudnn::softmax::Mode::Channel,
-                            1.,
-                            cudnn::tensor::Tensor::new(&yz_desc, &y_dev),
-                            0.,
-                            cudnn::tensor::TensorMut::new(&yz_desc, &mut z_dev))
-            .unwrap();
+                                cudnn::tensor::TensorMut::new(&yz_desc, &mut z_dev))
+                .unwrap();
 
-    let mut z = vec![0.; yz_desc.len()];
-    cuda::memory::memcpy(&mut z, &z_dev).unwrap();
-    println!("{}",
-             z.iter()
-                 .zip(&t)
-                 .map(|(z, t)| -z * t / (BATCH_SIZE as f32))
-                 .sum::<f32>());
-    let dz: Vec<_> = t.iter().map(|t| -t / (BATCH_SIZE as f32)).collect();
+        let mut z = vec![0.; yz_desc.len()];
+        cuda::memory::memcpy(&mut z, &z_dev).unwrap();
+        println!("{}",
+                 z.iter()
+                     .zip(&t)
+                     .map(|(z, t)| -z * t / (BATCH_SIZE as f32))
+                     .sum::<f32>());
+        let dz: Vec<_> = t.iter().map(|t| -t / (BATCH_SIZE as f32)).collect();
 
-    let mut dz_dev = cuda::memory::Memory::new(yz_desc.len()).unwrap();
-    cuda::memory::memcpy(&mut dz_dev, &dz).unwrap();
-    let mut dy_dev = cuda::memory::Memory::new(yz_desc.len()).unwrap();
+        let mut dz_dev = cuda::memory::Memory::new(yz_desc.len()).unwrap();
+        cuda::memory::memcpy(&mut dz_dev, &dz).unwrap();
+        let mut dy_dev = cuda::memory::Memory::new(yz_desc.len()).unwrap();
+        let mut dw_dev = cuda::memory::Memory::new(w_desc.len()).unwrap();
 
-    cudnn::softmax::backward(&mut context,
-                             cudnn::softmax::Algorithm::Log,
-                             cudnn::softmax::Mode::Channel,
-                             1.,
-                             cudnn::tensor::Tensor::new(&yz_desc, &z_dev),
-                             Some(cudnn::tensor::Tensor::new(&yz_desc, &dz_dev)),
-                             0.,
-                             cudnn::tensor::TensorMut::new(&yz_desc, &mut dy_dev))
-            .unwrap();
-
-    let mut dy = vec![0.; yz_desc.len()];
-    cuda::memory::memcpy(&mut dy, &dy_dev).unwrap();
-    println!("{:?}", dy);
+        cudnn::softmax::backward(&mut context,
+                                 cudnn::softmax::Algorithm::Log,
+                                 cudnn::softmax::Mode::Channel,
+                                 1.,
+                                 cudnn::tensor::Tensor::new(&yz_desc, &z_dev),
+                                 Some(cudnn::tensor::Tensor::new(&yz_desc, &dz_dev)),
+                                 0.,
+                                 cudnn::tensor::TensorMut::new(&yz_desc, &mut dy_dev))
+                .unwrap();
+        cudnn::convolution::backward_filter(&mut context,
+                                            1.,
+                                            cudnn::tensor::Tensor::new(&x_desc, &x_dev),
+                                            cudnn::tensor::Tensor::new(&yz_desc, &dy_dev),
+                                            &conv_desc,
+                                            bwd_filter_algo,
+                                            &mut workspace,
+                                            0.,
+                                            cudnn::filter::FilterMut::new(&w_desc, &mut dw_dev))
+                .unwrap();
+    }
 }
