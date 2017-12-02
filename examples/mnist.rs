@@ -16,14 +16,14 @@ fn main() {
                                                    1,
                                                    1)
             .unwrap();
-    let y_desc =
-        cudnn::tensor::Descriptor::new_4d(cudnn::tensor::Format::NCHW, BATCH_SIZE, N_CLASSES, 1, 1)
-            .unwrap();
     let w_desc = cudnn::filter::Descriptor::new_4d(cudnn::tensor::Format::NCHW,
                                                    N_CLASSES,
                                                    MNIST::SIZE * MNIST::SIZE,
                                                    1,
                                                    1)
+            .unwrap();
+    let yz_desc =
+        cudnn::tensor::Descriptor::new_4d(cudnn::tensor::Format::NCHW, BATCH_SIZE, N_CLASSES, 1, 1)
             .unwrap();
     let conv_desc = cudnn::convolution::Descriptor::new_2d(0,
                                                            0,
@@ -38,14 +38,14 @@ fn main() {
                                                   &x_desc,
                                                   &w_desc,
                                                   &conv_desc,
-                                                  &y_desc,
+                                                  &yz_desc,
                                                   cudnn::convolution::FwdPreference::PreferFastest)
                 .unwrap();
     let workspace_size = cudnn::convolution::get_forward_workspace_size(&mut context,
                                                                         &x_desc,
                                                                         &w_desc,
                                                                         &conv_desc,
-                                                                        &y_desc,
+                                                                        &yz_desc,
                                                                         algo)
             .unwrap();
 
@@ -60,8 +60,9 @@ fn main() {
 
     let mut x_dev = cuda::memory::Memory::new(x.len()).unwrap();
     cuda::memory::memcpy(&mut x_dev, &x).unwrap();
-    let mut y_dev = cuda::memory::Memory::new(y_desc.len()).unwrap();
     let w_dev = cuda::memory::Memory::new(w_desc.len()).unwrap();
+    let mut y_dev = cuda::memory::Memory::new(yz_desc.len()).unwrap();
+    let mut z_dev = cuda::memory::Memory::new(yz_desc.len()).unwrap();
 
     let mut workspace = cuda::memory::Memory::new(workspace_size).unwrap();
     cudnn::convolution::forward(&mut context,
@@ -72,10 +73,19 @@ fn main() {
                                 algo,
                                 &mut workspace,
                                 0.,
-                                cudnn::tensor::TensorMut::new(&y_desc, &mut y_dev))
+                                cudnn::tensor::TensorMut::new(&yz_desc, &mut y_dev))
             .unwrap();
 
-    let mut y = vec![0.; y_desc.len()];
-    cuda::memory::memcpy(&mut y, &y_dev).unwrap();
-    println!("{:?}", &y);
+    cudnn::softmax::forward(&mut context,
+                            cudnn::softmax::Algorithm::Fast,
+                            cudnn::softmax::Mode::Channel,
+                            1.,
+                            cudnn::tensor::Tensor::new(&x_desc, &x_dev),
+                            0.,
+                            cudnn::tensor::TensorMut::new(&yz_desc, &mut z_dev))
+            .unwrap();
+
+    let mut z = vec![0.; yz_desc.len()];
+    cuda::memory::memcpy(&mut z, &z_dev).unwrap();
+    println!("{:?}", &z);
 }
