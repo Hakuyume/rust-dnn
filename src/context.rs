@@ -1,47 +1,49 @@
+use std::mem;
+
 use cuda::memory;
 use cudnn;
 
-use self::memory::Repr;
-use self::memory::SliceMut;
-
 use Result;
 
+use self::memory::{Repr, ReprMut};
+
 pub struct Context {
-    workspace: Option<memory::Memory<u8>>,
-    cudnn: cudnn::context::Context,
+    pub workspace: Workspace,
+    pub cudnn: cudnn::context::Context,
 }
 
 impl Context {
     pub fn new() -> Result<Context> {
         Ok(Context {
+               workspace: Workspace::new(),
                cudnn: cudnn::context::Context::new()?,
-               workspace: None,
            })
     }
+}
 
-    pub fn cudnn(&mut self) -> &mut cudnn::context::Context {
-        &mut self.cudnn
+pub struct Workspace {
+    mem: Option<memory::Memory<u8>>,
+}
+
+impl Workspace {
+    pub fn new() -> Workspace {
+        Workspace { mem: None }
     }
 
-    pub fn cudnn_with_workspace<'a>
-        (&'a mut self,
-         size: usize)
-         -> Result<(&mut cudnn::context::Context, memory::ViewMut<'a, u8>)> {
-        let workspace = {
-            let workspace = match self.workspace.take() {
-                Some(workspace) => {
-                    if size <= workspace.len() {
-                        workspace
-                    } else {
-                        drop(workspace);
-                        memory::Memory::new(size)?
-                    }
+    pub fn get<'a, T>(&'a mut self, len: usize) -> Result<memory::ViewMut<'a, T>> {
+        let size = mem::size_of::<T>() * len;
+        let mem = match self.mem.take() {
+            Some(mem) => {
+                if size <= mem.len() {
+                    mem
+                } else {
+                    drop(mem);
+                    memory::Memory::new(size)?
                 }
-                None => memory::Memory::new(size)?,
-            };
-            self.workspace.get_or_insert(workspace)
+            }
+            None => memory::Memory::new(size)?,
         };
-
-        Ok((&mut self.cudnn, workspace.slice_mut(..size)))
+        let mem = self.mem.get_or_insert(mem);
+        Ok(unsafe { memory::from_raw_parts_mut(mem.as_mut_ptr() as *mut T, len) })
     }
 }

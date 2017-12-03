@@ -12,11 +12,11 @@ pub type Result<T> = result::Result<T, Error>;
 mod context;
 pub use context::Context;
 
-mod tensor;
-pub use tensor::Tensor;
+// mod tensor;
+// pub use tensor::Tensor;
 
-pub mod layer;
+// pub mod layer;
 
-mod misc;
+// mod misc;
 
 pub mod dataset;
