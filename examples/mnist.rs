@@ -130,7 +130,7 @@ fn main() {
                                  cudnn::tensor::TensorMut::new(&yz_desc, &mut dy_dev))
                 .unwrap();
         cudnn::convolution::backward_filter(&mut context,
-                                            -1e-3,
+                                            -1e-5,
                                             cudnn::tensor::Tensor::new(&x_desc, &x_dev),
                                             cudnn::tensor::Tensor::new(&yz_desc, &dy_dev),
                                             &conv_desc,
