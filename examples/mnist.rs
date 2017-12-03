@@ -87,7 +87,7 @@ fn main() {
     let mut workspace =
         cuda::memory::Memory::new(cmp::max(fwd_workspace_size, bwd_filter_workspace_size)).unwrap();
 
-    for _ in 0..10 {
+    for _ in 0..50 {
         cudnn::convolution::forward(&mut context,
                                     1.,
                                     cudnn::tensor::Tensor::new(&x_desc, &x_dev),
@@ -109,11 +109,13 @@ fn main() {
 
         let mut z = vec![0.; yz_desc.len()];
         cuda::memory::memcpy(&mut z, &z_dev).unwrap();
-        println!("{}",
-                 z.iter()
-                     .zip(&t)
-                     .map(|(z, t)| -z * t / (BATCH_SIZE as f32))
-                     .sum::<f32>());
+        {
+            let loss = z.iter()
+                .zip(&t)
+                .map(|(z, t)| -z * t / (BATCH_SIZE as f32))
+                .sum::<f32>();
+            println!("loss:{}", loss);
+        }
         let dz: Vec<_> = t.iter().map(|t| -t / (BATCH_SIZE as f32)).collect();
 
         let mut dz_dev = cuda::memory::Memory::new(yz_desc.len()).unwrap();
