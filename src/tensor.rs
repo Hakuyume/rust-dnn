@@ -8,7 +8,7 @@ pub struct Tensor<T>
 {
     shape: (usize, usize, usize, usize),
     mem: memory::Memory<T>,
-    cudnn_desc: cudnn::tensor::Descriptor<T>,
+    cudnn: cudnn::tensor::Descriptor<T>,
 }
 
 impl<T> Tensor<T>
@@ -17,13 +17,9 @@ impl<T> Tensor<T>
     pub fn new(shape: (usize, usize, usize, usize)) -> Result<Tensor<T>> {
         let (n, c, h, w) = shape;
         let mem = memory::Memory::new(n * c * h * w)?;
-        let cudnn_desc =
-            cudnn::tensor::Descriptor::new_4d(cudnn::tensor::Format::NCHW, n, c, h, w)?;
-        Ok(Tensor {
-               shape,
-               mem,
-               cudnn_desc,
-           })
+        let mut cudnn = cudnn::tensor::Descriptor::new()?;
+        cudnn.set_4d(cudnn::tensor::Format::NCHW, n, c, h, w)?;
+        Ok(Tensor { shape, mem, cudnn })
     }
 
     pub fn shape(&self) -> (usize, usize, usize, usize) {
@@ -38,15 +34,11 @@ impl<T> Tensor<T>
         &mut self.mem
     }
 
-    pub fn cudnn_desc(&self) -> &cudnn::tensor::Descriptor<T> {
-        &self.cudnn_desc
+    pub fn cudnn(&self) -> (&cudnn::tensor::Descriptor<T>, &memory::Memory<T>) {
+        (&self.cudnn, &self.mem)
     }
 
-    pub fn cudnn_tensor<'a>(&'a self) -> cudnn::tensor::Tensor<'a, T> {
-        cudnn::tensor::Tensor::new(&self.cudnn_desc, &self.mem)
-    }
-
-    pub fn cudnn_tensor_mut<'a>(&'a mut self) -> cudnn::tensor::TensorMut<'a, T> {
-        cudnn::tensor::TensorMut::new(&self.cudnn_desc, &mut self.mem)
+    pub fn cudnn_mut(&mut self) -> (&cudnn::tensor::Descriptor<T>, &mut memory::Memory<T>) {
+        (&self.cudnn, &mut self.mem)
     }
 }
