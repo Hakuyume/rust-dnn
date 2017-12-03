@@ -116,25 +116,24 @@ fn main() {
                 .sum::<f32>();
             println!("loss:{}", loss);
         }
-        let dz: Vec<_> = t.iter().map(|t| -t / (BATCH_SIZE as f32)).collect();
+        let dyz: Vec<_> = t.iter().map(|t| -t / (BATCH_SIZE as f32)).collect();
 
-        let mut dz_dev = cuda::memory::Memory::new(yz_desc.len()).unwrap();
-        cuda::memory::memcpy(&mut dz_dev, &dz).unwrap();
-        let mut dy_dev = cuda::memory::Memory::new(yz_desc.len()).unwrap();
+        let mut dyz_dev = cuda::memory::Memory::new(yz_desc.len()).unwrap();
+        cuda::memory::memcpy(&mut dyz_dev, &dyz).unwrap();
 
         cudnn::softmax::backward(&mut context,
                                  cudnn::softmax::Algorithm::Log,
                                  cudnn::softmax::Mode::Channel,
                                  1.,
                                  cudnn::tensor::Tensor::new(&yz_desc, &z_dev),
-                                 Some(cudnn::tensor::Tensor::new(&yz_desc, &dz_dev)),
+                                 None,
                                  0.,
-                                 cudnn::tensor::TensorMut::new(&yz_desc, &mut dy_dev))
+                                 cudnn::tensor::TensorMut::new(&yz_desc, &mut dyz_dev))
                 .unwrap();
         cudnn::convolution::backward_filter(&mut context,
                                             -1e-5,
                                             cudnn::tensor::Tensor::new(&x_desc, &x_dev),
-                                            cudnn::tensor::Tensor::new(&yz_desc, &dy_dev),
+                                            cudnn::tensor::Tensor::new(&yz_desc, &dyz_dev),
                                             &conv_desc,
                                             bwd_filter_algo,
                                             &mut workspace,
