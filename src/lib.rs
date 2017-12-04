@@ -9,14 +9,14 @@ mod error;
 pub use error::Error;
 pub type Result<T> = result::Result<T, Error>;
 
+mod misc;
+
 mod context;
 pub use context::Context;
 
 mod tensor;
 pub use tensor::Tensor;
 
-// pub mod layer;
-
-// mod misc;
+pub mod layer;
 
 pub mod dataset;
