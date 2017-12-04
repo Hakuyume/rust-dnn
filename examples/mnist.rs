@@ -24,14 +24,10 @@ fn main() {
                 1,
                 1)
         .unwrap();
-    let conv_desc = cudnn::convolution::Descriptor::new_2d(0,
-                                                           0,
-                                                           1,
-                                                           1,
-                                                           1,
-                                                           1,
-                                                           cudnn::convolution::Mode::Convolution)
-            .unwrap();
+    let mut conv_desc = cudnn::convolution::Descriptor::new().unwrap();
+    conv_desc
+        .set_2d(0, 0, 1, 1, 1, 1, cudnn::convolution::Mode::Convolution)
+        .unwrap();
 
     let mnist = MNIST::new("mnist").unwrap();
     let mut x_host = vec![0.; x.mem().len()];
