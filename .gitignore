@@ -1,3 +1,6 @@
 /target/
 **/*.rs.bk
 Cargo.lock
+
+src/generic_value/values.rs
+src/generic_value/impls.rs
