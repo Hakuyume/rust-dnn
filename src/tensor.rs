@@ -45,6 +45,10 @@ impl<T, N, C, H, W> Tensor<T, N, C, H, W>
         &mut self.mem
     }
 
+    pub fn cudnn_desc(&self) -> &cudnn::tensor::Descriptor<T> {
+        &self.cudnn
+    }
+
     pub fn cudnn(&self) -> (&cudnn::tensor::Descriptor<T>, &memory::Memory<T>) {
         (&self.cudnn, &self.mem)
     }

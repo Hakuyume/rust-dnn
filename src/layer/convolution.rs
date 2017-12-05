@@ -113,16 +113,16 @@ impl<T, S, KSize, N, InC, InH, InW, OutC, OutH, OutW> UnaryLayer<T, N, InC, InH,
                -> Result<()> {
         let algo =
             cudnn::convolution::get_forward_algorithm(&mut context.cudnn,
-                                                      x.cudnn().0,
+                                                      x.cudnn_desc(),
                                                       &self.w_desc,
                                                       &self.conv_desc,
-                                                      y.cudnn().0,
+                                                      y.cudnn_desc(),
                                                       cudnn::convolution::FwdPreference::PreferFastest)?;
         let workspace_size = cudnn::convolution::get_forward_workspace_size(&mut context.cudnn,
-                                                                            x.cudnn().0,
+                                                                            x.cudnn_desc(),
                                                                             &self.w_desc,
                                                                             &self.conv_desc,
-                                                                            y.cudnn().0,
+                                                                            y.cudnn_desc(),
                                                                             algo)?;
         unsafe {
             cudnn::convolution::forward(&mut context.cudnn,
@@ -146,15 +146,15 @@ impl<T, S, KSize, N, InC, InH, InW, OutC, OutH, OutW> UnaryLayer<T, N, InC, InH,
                 -> Result<()> {
         let algo =
                 cudnn::convolution::get_backward_filter_algorithm(&mut context.cudnn,
-                                                                  x.cudnn().0,
-                                                                  dy.cudnn().0,
+                                                                  x.cudnn_desc(),
+                                                                  dy.cudnn_desc(),
                                                                   &self.conv_desc,
                                                                   &self.w_desc,
                                                                   cudnn::convolution::BwdFilterPreference::PreferFastest)?;
         let workspace_size =
             cudnn::convolution::get_backward_filter_workspace_size(&mut context.cudnn,
-                                                                   x.cudnn().0,
-                                                                   dy.cudnn().0,
+                                                                   x.cudnn_desc(),
+                                                                   dy.cudnn_desc(),
                                                                    &self.conv_desc,
                                                                    &self.w_desc,
                                                                    algo)?;
