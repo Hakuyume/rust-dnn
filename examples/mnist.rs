@@ -18,11 +18,10 @@ fn main() {
     let mut context = nn::Context::new().unwrap();
 
     let mut x = nn::Tensor::<_, BatchSize, InputSize, U1, U1>::new().unwrap();
-    let mut y = nn::Tensor::new().unwrap();
+    let mut y = nn::Tensor::<_, _, NClasses, _, _>::new().unwrap();
     let mut z = nn::Tensor::<_, BatchSize, NClasses, U1, U1>::new().unwrap();
 
-    let mut conv = nn::layer::Convolution2D::<_, InputSize, NClasses, U1, U0, U1, U1>::new()
-        .unwrap();
+    let mut conv = nn::layer::Convolution2D::<_, _, _, U1, U0, U1, U1>::new().unwrap();
 
     let mnist = MNIST::new("mnist").unwrap();
     let mut x_host = vec![0.; x.mem().len()];
