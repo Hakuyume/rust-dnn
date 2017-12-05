@@ -1,29 +1,40 @@
+use std::marker;
+
 use cuda::memory;
 use cudnn;
 
+use generic_value::traits::USize;
 use Result;
 
-pub struct Tensor<T>
+pub struct Tensor<T, N, C, H, W>
     where T: cudnn::scalar::Scalar
 {
-    shape: (usize, usize, usize, usize),
     mem: memory::Memory<T>,
     cudnn: cudnn::tensor::Descriptor<T>,
+    _type: marker::PhantomData<(N, C, H, W)>,
 }
 
-impl<T> Tensor<T>
-    where T: cudnn::scalar::Scalar
+impl<T, N, C, H, W> Tensor<T, N, C, H, W>
+    where T: cudnn::scalar::Scalar,
+          N: USize,
+          C: USize,
+          H: USize,
+          W: USize
 {
-    pub fn new(shape: (usize, usize, usize, usize)) -> Result<Tensor<T>> {
-        let (n, c, h, w) = shape;
-        let mem = memory::Memory::new(n * c * h * w)?;
+    pub fn new() -> Result<Tensor<T, N, C, H, W>> {
+        let mem = memory::Memory::new(N::VALUE * C::VALUE * H::VALUE * W::VALUE)?;
         let mut cudnn = cudnn::tensor::Descriptor::new()?;
-        cudnn.set_4d(cudnn::tensor::Format::NCHW, n, c, h, w)?;
-        Ok(Tensor { shape, mem, cudnn })
-    }
-
-    pub fn shape(&self) -> (usize, usize, usize, usize) {
-        self.shape
+        cudnn
+            .set_4d(cudnn::tensor::Format::NCHW,
+                    N::VALUE,
+                    C::VALUE,
+                    H::VALUE,
+                    W::VALUE)?;
+        Ok(Tensor {
+               mem,
+               cudnn,
+               _type: marker::PhantomData::default(),
+           })
     }
 
     pub fn mem(&self) -> &memory::Memory<T> {

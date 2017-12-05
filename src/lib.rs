@@ -5,6 +5,8 @@ extern crate cudnn;
 
 use std::result;
 
+pub mod generic_value;
+
 mod error;
 pub use error::Error;
 pub type Result<T> = result::Result<T, Error>;

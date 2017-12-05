@@ -1,94 +1,112 @@
+use std::marker;
+use std::ops;
+
+use num_traits;
+
 use cuda::memory;
 use cudnn;
 
+use generic_value::traits::USize;
+use generic_value::values::*;
 use Result;
 use misc;
 use Context;
 use Tensor;
 
-use std::ops::{Sub, Neg};
-use num_traits::{Zero, One};
 use super::Layer;
+use super::UnaryLayer;
 
-pub struct Convolution2D<T>
-    where T: cudnn::scalar::Scalar
+pub struct Convolution2D<T, InC, OutC, KSize, Pad, Stride, Dilate>
+    where T: cudnn::scalar::Scalar,
+          InC: USize,
+          OutC: USize,
+          KSize: USize,
+          Pad: USize,
+          Stride: USize,
+          Dilate: USize
 {
-    in_shape: (usize, usize, usize, usize),
-    out_shape: (usize, usize, usize, usize),
     w_desc: cudnn::filter::Descriptor<T>,
     w: memory::Memory<T>,
     dw: memory::Memory<T>,
     conv_desc: cudnn::convolution::Descriptor<T>,
+    _type: marker::PhantomData<(InC, OutC, KSize, Pad, Stride, Dilate)>,
 }
 
-impl<T> Convolution2D<T>
-    where T: cudnn::scalar::Scalar
+impl<T, InC, OutC, KSize, Pad, Stride, Dilate> Convolution2D<T,
+                                                             InC,
+                                                             OutC,
+                                                             KSize,
+                                                             Pad,
+                                                             Stride,
+                                                             Dilate>
+    where T: cudnn::scalar::Scalar,
+          InC: USize,
+          OutC: USize,
+          KSize: USize,
+          Pad: USize,
+          Stride: USize,
+          Dilate: USize
 {
-    pub fn new(in_shape: (usize, usize, usize, usize),
-               out_c: usize,
-               ksize: usize,
-               pad: usize,
-               stride: usize,
-               dilate: usize)
-               -> Result<Convolution2D<T>> {
-        let (in_n, in_c, in_h, in_w) = in_shape;
-        let out_shape = (in_n,
-                         out_c,
-                         (in_h + pad * 2 - (ksize - 1) * dilate) / stride,
-                         (in_w + pad * 2 - (ksize - 1) * dilate) / stride);
-
+    pub fn new() -> Result<Convolution2D<T, InC, OutC, KSize, Pad, Stride, Dilate>> {
         let mut w_desc = cudnn::filter::Descriptor::new()?;
         w_desc
-            .set_4d(cudnn::tensor::Format::NCHW, out_c, in_c, ksize, ksize)?;
-        let w = memory::Memory::new(out_c * in_c * ksize * ksize)?;
-        let dw = memory::Memory::new(out_c * in_c * ksize * ksize)?;
+            .set_4d(cudnn::tensor::Format::NCHW,
+                    OutC::VALUE,
+                    InC::VALUE,
+                    KSize::VALUE,
+                    KSize::VALUE)?;
+        let w = memory::Memory::new(OutC::VALUE * InC::VALUE * KSize::VALUE * KSize::VALUE)?;
+        let dw = memory::Memory::new(OutC::VALUE * InC::VALUE * KSize::VALUE * KSize::VALUE)?;
         let mut conv_desc = cudnn::convolution::Descriptor::new()?;
         conv_desc
-            .set_2d(pad,
-                    pad,
-                    stride,
-                    stride,
-                    dilate,
-                    dilate,
+            .set_2d(Pad::VALUE,
+                    Pad::VALUE,
+                    Stride::VALUE,
+                    Stride::VALUE,
+                    Dilate::VALUE,
+                    Dilate::VALUE,
                     cudnn::convolution::Mode::Convolution)?;
 
-        {
-            let mut in_desc = cudnn::tensor::Descriptor::new()?;
-            in_desc
-                .set_4d(cudnn::tensor::Format::NCHW, in_n, in_c, in_h, in_w)?;
-            assert_eq!(out_shape,
-                       cudnn::convolution::get_2d_forward_output_dim(&conv_desc,
-                                                                     &in_desc,
-                                                                     &w_desc)?);
-        }
-
         Ok(Convolution2D {
-               in_shape,
-               out_shape,
                w_desc,
                w,
                dw,
                conv_desc,
+               _type: marker::PhantomData::default(),
            })
     }
 }
 
-impl<T> Layer<T> for Convolution2D<T>
-    where T: Copy + Neg<Output = T> + cudnn::scalar::Scalar + cudnn::scalar::Scale + misc::Scalar,
-          T::Scale: From<T> + Sub<Output = T::Scale> + Zero + One
+impl<T, InC, OutC, KSize, Pad, Stride, Dilate> Layer<T>
+    for Convolution2D<T, InC, OutC, KSize, Pad, Stride, Dilate>
+    where T: ops::Neg<Output = T> + cudnn::scalar::Scalar + misc::Scalar,
+          InC: USize,
+          OutC: USize,
+          KSize: USize,
+          Pad: USize,
+          Stride: USize,
+          Dilate: USize
 {
-    fn in_shape(&self) -> (usize, usize, usize, usize) {
-        self.in_shape
+    fn optimize(&mut self, _: &mut Context, lr: T) -> Result<()> {
+        misc::axpy(-lr, &self.dw, &mut self.w)
     }
+}
 
-    fn out_shape(&self) -> (usize, usize, usize, usize) {
-        self.out_shape
-    }
-
-    fn forward(&self, context: &mut Context, x: &Tensor<T>, y: &mut Tensor<T>) -> Result<()> {
-        assert_eq!(x.shape(), self.in_shape());
-        assert_eq!(y.shape(), self.out_shape());
-
+impl<T, S, N, InC, H, W, OutC> UnaryLayer<T, N, InC, H, W, N, OutC, H, W>
+    for Convolution2D<T, InC, OutC, U1, U0, U1, U1>
+    where T: ops::Neg<Output = T> + cudnn::scalar::Scalar + cudnn::scalar::Scale<Scale = S> + misc::Scalar,
+          S: From<T> + num_traits::Zero + num_traits::One,
+          N: USize,
+          InC: USize,
+          H: USize,
+          W: USize,
+          OutC: USize
+{
+    fn forward(&self,
+               context: &mut Context,
+               x: &Tensor<T, N, InC, H, W>,
+               y: &mut Tensor<T, N, OutC, H, W>)
+               -> Result<()> {
         let algo =
             cudnn::convolution::get_forward_algorithm(&mut context.cudnn,
                                                       x.cudnn().0,
@@ -104,13 +122,13 @@ impl<T> Layer<T> for Convolution2D<T>
                                                                             algo)?;
         unsafe {
             cudnn::convolution::forward(&mut context.cudnn,
-                                        T::Scale::one(),
+                                        S::one(),
                                         x.cudnn(),
                                         (&self.w_desc, &self.w),
                                         &self.conv_desc,
                                         algo,
                                         &mut context.workspace.get(workspace_size)?,
-                                        T::Scale::zero(),
+                                        S::zero(),
                                         y.cudnn_mut())?
         }
         Ok(())
@@ -118,15 +136,10 @@ impl<T> Layer<T> for Convolution2D<T>
 
     fn backward(&mut self,
                 context: &mut Context,
-                x: &Tensor<T>,
-                dy: &Tensor<T>,
-                dx: &mut Tensor<T>,
-                momentum: T)
+                x: &Tensor<T, N, InC, H, W>,
+                dy: &Tensor<T, N, OutC, H, W>,
+                _: &mut Tensor<T, N, InC, H, W>)
                 -> Result<()> {
-        assert_eq!(x.shape(), self.in_shape());
-        assert_eq!(dy.shape(), self.out_shape());
-        assert_eq!(dx.shape(), self.in_shape());
-
         let algo =
                 cudnn::convolution::get_backward_filter_algorithm(&mut context.cudnn,
                                                                   x.cudnn().0,
@@ -143,19 +156,15 @@ impl<T> Layer<T> for Convolution2D<T>
                                                                    algo)?;
         unsafe {
             cudnn::convolution::backward_filter(&mut context.cudnn,
-                                                T::Scale::one() - momentum.into(),
+                                                S::one(),
                                                 x.cudnn(),
                                                 dy.cudnn(),
                                                 &self.conv_desc,
                                                 algo,
                                                 &mut context.workspace.get(workspace_size)?,
-                                                momentum.into(),
+                                                S::zero(),
                                                 (&self.w_desc, &mut self.dw))?
         }
         Ok(())
-    }
-
-    fn optimize(&mut self, _: &mut Context, lr: T) -> Result<()> {
-        misc::axpy(-lr, &self.dw, &mut self.w)
     }
 }
