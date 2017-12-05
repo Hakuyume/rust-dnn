@@ -6,7 +6,8 @@ use num_traits;
 use cuda::memory;
 use cudnn;
 
-use generic_value::traits::USize;
+use generic_value;
+use generic_value::USize;
 use generic_value::values::*;
 use Result;
 use misc;
@@ -92,20 +93,23 @@ impl<T, InC, OutC, KSize, Pad, Stride, Dilate> Layer<T>
     }
 }
 
-impl<T, S, N, InC, H, W, OutC> UnaryLayer<T, N, InC, H, W, N, OutC, H, W>
-    for Convolution2D<T, InC, OutC, U1, U0, U1, U1>
+impl<T, S, KSize, N, InC, InH, InW, OutC, OutH, OutW> UnaryLayer<T, N, InC, InH, InW, N, OutC, OutH, OutW>
+    for Convolution2D<T, InC, OutC, KSize, U0, U1, U1>
     where T: ops::Neg<Output = T> + cudnn::scalar::Scalar + cudnn::scalar::Scale<Scale = S> + misc::Scalar,
           S: From<T> + num_traits::Zero + num_traits::One,
+          KSize: USize + generic_value::Sub<U1>,
           N: USize,
           InC: USize,
-          H: USize,
-          W: USize,
-          OutC: USize
+          InH: USize + generic_value::Sub<<KSize as generic_value::Sub<U1>>::Output, Output = OutH>,
+          InW: USize + generic_value::Sub<<KSize as generic_value::Sub<U1>>::Output, Output = OutW>,
+          OutC: USize,
+          OutH: USize,
+          OutW: USize
 {
     fn forward(&self,
                context: &mut Context,
-               x: &Tensor<T, N, InC, H, W>,
-               y: &mut Tensor<T, N, OutC, H, W>)
+               x: &Tensor<T, N, InC, InH, InW>,
+               y: &mut Tensor<T, N, OutC, OutH, OutW>)
                -> Result<()> {
         let algo =
             cudnn::convolution::get_forward_algorithm(&mut context.cudnn,
@@ -136,9 +140,9 @@ impl<T, S, N, InC, H, W, OutC> UnaryLayer<T, N, InC, H, W, N, OutC, H, W>
 
     fn backward(&mut self,
                 context: &mut Context,
-                x: &Tensor<T, N, InC, H, W>,
-                dy: &Tensor<T, N, OutC, H, W>,
-                _: &mut Tensor<T, N, InC, H, W>)
+                x: &Tensor<T, N, InC, InH, InW>,
+                dy: &Tensor<T, N, OutC, OutH, OutW>,
+                _: &mut Tensor<T, N, InC, InH, InW>)
                 -> Result<()> {
         let algo =
                 cudnn::convolution::get_backward_filter_algorithm(&mut context.cudnn,

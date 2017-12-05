@@ -1,6 +1,6 @@
 use cudnn;
 
-use generic_value::traits::USize;
+use generic_value::USize;
 use Result;
 use Context;
 use Tensor;

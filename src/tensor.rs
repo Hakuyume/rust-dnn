@@ -3,7 +3,7 @@ use std::marker;
 use cuda::memory;
 use cudnn;
 
-use generic_value::traits::USize;
+use generic_value::USize;
 use Result;
 
 pub struct Tensor<T, N, C, H, W>

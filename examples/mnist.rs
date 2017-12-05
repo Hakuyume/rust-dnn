@@ -6,7 +6,7 @@ use nn::dataset::MNIST;
 use nn::generic_value::values::*;
 
 use cuda::memory::Repr;
-use nn::generic_value::traits::USize;
+use nn::generic_value::USize;
 use nn::layer::Layer;
 use nn::layer::UnaryLayer;
 
