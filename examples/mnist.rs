@@ -17,11 +17,11 @@ type NClasses = U10;
 fn main() {
     let mut context = nn::Context::new().unwrap();
 
-    let mut x = nn::Tensor::<_, BatchSize, InputSize, U1, U1>::new().unwrap();
+    let mut x = nn::Tensor::<_, BatchSize, InputSize, _, _>::new().unwrap();
     let mut y = nn::Tensor::<_, _, NClasses, _, _>::new().unwrap();
     let mut z = nn::Tensor::<_, BatchSize, NClasses, U1, U1>::new().unwrap();
 
-    let mut conv = nn::layer::Convolution2D::<_, _, _, U1, U0, U1, U1>::new().unwrap();
+    let mut fc = nn::layer::Linear::<_, _, _>::new().unwrap();
 
     let mnist = MNIST::new("mnist").unwrap();
     let mut x_host = vec![0.; x.mem().len()];
@@ -36,7 +36,7 @@ fn main() {
     cuda::memory::memcpy(x.mem_mut(), &x_host).unwrap();
 
     for _ in 0..50 {
-        conv.forward(&mut context, &x, &mut y).unwrap();
+        fc.forward(&mut context, &x, &mut y).unwrap();
         unsafe {
             cudnn::softmax::forward(&mut context.cudnn,
                                     cudnn::softmax::Algorithm::Log,
@@ -77,8 +77,8 @@ fn main() {
                     .unwrap()
         }
         let mut dx = nn::Tensor::new().unwrap();
-        conv.backward(&mut context, &x, &dyz, &mut dx).unwrap();
+        fc.backward(&mut context, &x, &dyz, &mut dx).unwrap();
 
-        conv.optimize(&mut context, 1e-5).unwrap();
+        fc.optimize(&mut context, 1e-5).unwrap();
     }
 }

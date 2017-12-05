@@ -35,3 +35,6 @@ pub trait UnaryLayer<T, InN, InC, InH, InW, OutN, OutC, OutH, OutW>: Layer<T>
 
 mod convolution;
 pub use self::convolution::Convolution2D;
+
+mod linear;
+pub use self::linear::Linear;
