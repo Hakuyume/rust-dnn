@@ -124,8 +124,7 @@ impl<T, S, KSize, N, InC, InH, InW, OutC, OutH, OutW> UnaryLayer<T, N, InC, InH,
                                                                             &self.conv_desc,
                                                                             y.cudnn_desc(),
                                                                             algo)?;
-        unsafe {
-            cudnn::convolution::forward(&mut context.cudnn,
+        cudnn::convolution::forward(&mut context.cudnn,
                                         S::one(),
                                         x.cudnn(),
                                         (&self.w_desc, &self.w),
@@ -133,8 +132,7 @@ impl<T, S, KSize, N, InC, InH, InW, OutC, OutH, OutW> UnaryLayer<T, N, InC, InH,
                                         algo,
                                         &mut context.workspace.get(workspace_size)?,
                                         S::zero(),
-                                        y.cudnn_mut())?
-        }
+                                        y.cudnn_mut())?;
         Ok(())
     }
 
@@ -158,7 +156,6 @@ impl<T, S, KSize, N, InC, InH, InW, OutC, OutH, OutW> UnaryLayer<T, N, InC, InH,
                                                                    &self.conv_desc,
                                                                    &self.w_desc,
                                                                    algo)?;
-        unsafe {
             cudnn::convolution::backward_filter(&mut context.cudnn,
                                                 S::one(),
                                                 x.cudnn(),
@@ -167,8 +164,7 @@ impl<T, S, KSize, N, InC, InH, InW, OutC, OutH, OutW> UnaryLayer<T, N, InC, InH,
                                                 algo,
                                                 &mut context.workspace.get(workspace_size)?,
                                                 S::zero(),
-                                                (&self.w_desc, &mut self.dw))?
-        }
+                                                (&self.w_desc, &mut self.dw))?;
         Ok(())
     }
 }

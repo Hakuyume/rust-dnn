@@ -37,16 +37,14 @@ fn main() {
 
     for _ in 0..50 {
         fc.forward(&mut context, &x, &mut y).unwrap();
-        unsafe {
-            cudnn::softmax::forward(&mut context.cudnn,
-                                    cudnn::softmax::Algorithm::Log,
-                                    cudnn::softmax::Mode::Channel,
-                                    1.,
-                                    y.cudnn(),
-                                    0.,
-                                    z.cudnn_mut())
-                    .unwrap()
-        }
+        cudnn::softmax::forward(&mut context.cudnn,
+                                cudnn::softmax::Algorithm::Log,
+                                cudnn::softmax::Mode::Channel,
+                                1.,
+                                y.cudnn(),
+                                0.,
+                                z.cudnn_mut())
+                .unwrap();
 
         let mut z_host = vec![0.; z.mem().len()];
         cuda::memory::memcpy(&mut z_host, z.mem()).unwrap();
@@ -65,17 +63,16 @@ fn main() {
         let mut dyz = nn::Tensor::new().unwrap();
         cuda::memory::memcpy(dyz.mem_mut(), &dyz_host).unwrap();
 
-        unsafe {
-            cudnn::softmax::backward(&mut context.cudnn,
-                                     cudnn::softmax::Algorithm::Log,
-                                     cudnn::softmax::Mode::Channel,
-                                     1.,
-                                     z.cudnn(),
-                                     None as Option<(_, &cuda::memory::View<_>)>,
-                                     0.,
-                                     dyz.cudnn_mut())
-                    .unwrap()
-        }
+        cudnn::softmax::backward(&mut context.cudnn,
+                                 cudnn::softmax::Algorithm::Log,
+                                 cudnn::softmax::Mode::Channel,
+                                 1.,
+                                 z.cudnn(),
+                                 None as Option<(_, &cuda::memory::View<_>)>,
+                                 0.,
+                                 dyz.cudnn_mut())
+                .unwrap();
+
         let mut dx = nn::Tensor::new().unwrap();
         fc.backward(&mut context, &x, &dyz, &mut dx).unwrap();
 
