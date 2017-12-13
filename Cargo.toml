@@ -16,4 +16,4 @@ cudnn = { git = "https://github.com/Hakuyume/rust-cuda" }
 nvcc = { git = "https://github.com/Hakuyume/rust-cuda" }
 
 [dev-dependencies]
-rand = "0.3"
+rand = "0.4.0-pre.0"
