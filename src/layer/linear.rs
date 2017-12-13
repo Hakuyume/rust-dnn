@@ -2,17 +2,15 @@ use std::ops;
 
 use num_traits;
 
+use cublas;
 use cudnn;
 
 use generic_value::USize;
 use generic_value::values::*;
 use Result;
-use misc;
 use Context;
 use Tensor;
 
-use super::Layer;
-use super::UnaryLayer;
 use super::Convolution2D;
 
 pub struct Linear<T, InC, OutC>(Convolution2D<T, InC, OutC, U1, U0, U1, U1>)
@@ -30,38 +28,40 @@ impl<T, InC, OutC> Linear<T, InC, OutC>
     }
 }
 
-impl<T, InC, OutC> Layer<T> for Linear<T, InC, OutC>
-    where T: ops::Neg<Output = T> + cudnn::scalar::Scalar + misc::Scalar,
+impl<T, InC, OutC> Linear<T, InC, OutC>
+    where T: ops::Neg<Output = T> + cublas::scalar::Scalar + cudnn::scalar::Scalar,
           InC: USize,
           OutC: USize
 {
-    fn optimize(&mut self, context: &mut Context, lr: T) -> Result<()> {
+    pub fn optimize(&mut self, context: &mut Context, lr: T) -> Result<()> {
         self.0.optimize(context, lr)
     }
 }
 
-impl<T, S, N, InC, OutC> UnaryLayer<T, N, InC, U1, U1, N, OutC, U1, U1>
-    for Linear<T, InC, OutC>
-    where T: ops::Neg<Output = T> + cudnn::scalar::Scalar + cudnn::scalar::Scale<Scale = S> + misc::Scalar,
+impl<T, S, InC, OutC> Linear<T, InC, OutC>
+    where T: cudnn::scalar::Scalar + cudnn::scalar::Scale<Scale = S>,
           S: From<T> + num_traits::Zero + num_traits::One,
-          N: USize,
           InC: USize,
-          OutC: USize,
+          OutC: USize
 {
-    fn forward(&self,
-               context: &mut Context,
-               x: &Tensor<T, N, InC, U1, U1>,
-               y: &mut Tensor<T, N, OutC, U1, U1>)
-               -> Result<()> {
+    pub fn forward<N>(&mut self,
+                      context: &mut Context,
+                      x: &Tensor<T, N, InC, U1, U1>,
+                      y: &mut Tensor<T, N, OutC, U1, U1>)
+                      -> Result<()>
+        where N: USize
+    {
         self.0.forward(context, x, y)
     }
 
-    fn backward(&mut self,
-                context: &mut Context,
-                x: &Tensor<T, N, InC, U1, U1>,
-                dy: &Tensor<T, N, OutC, U1, U1>,
-                dx: &mut Tensor<T, N, InC, U1, U1>)
-                -> Result<()> {
+    pub fn backward<N>(&mut self,
+                       context: &mut Context,
+                       x: &Tensor<T, N, InC, U1, U1>,
+                       dy: &Tensor<T, N, OutC, U1, U1>,
+                       dx: &mut Tensor<T, N, InC, U1, U1>)
+                       -> Result<()>
+        where N: USize
+    {
         self.0.backward(context, x, dy, dx)
     }
 }

@@ -4,18 +4,17 @@ use std::ops;
 use num_traits;
 
 use cuda::memory;
+use cublas;
 use cudnn;
 
 use generic_value;
 use generic_value::USize;
 use generic_value::values::*;
 use Result;
-use misc;
 use Context;
 use Tensor;
 
-use super::Layer;
-use super::UnaryLayer;
+use cuda::memory::Repr;
 
 pub struct Convolution2D<T, InC, OutC, KSize, Pad, Stride, Dilate>
     where T: cudnn::scalar::Scalar,
@@ -57,7 +56,7 @@ impl<T, InC, OutC, KSize, Pad, Stride, Dilate> Convolution2D<T,
                     KSize::VALUE,
                     KSize::VALUE)?;
         let w = memory::Memory::new(OutC::VALUE * InC::VALUE * KSize::VALUE * KSize::VALUE)?;
-        let dw = memory::Memory::new(OutC::VALUE * InC::VALUE * KSize::VALUE * KSize::VALUE)?;
+        let dw = memory::Memory::new(w.len())?;
         let mut conv_desc = cudnn::convolution::Descriptor::new()?;
         conv_desc
             .set_2d(Pad::VALUE,
@@ -67,7 +66,6 @@ impl<T, InC, OutC, KSize, Pad, Stride, Dilate> Convolution2D<T,
                     Dilate::VALUE,
                     Dilate::VALUE,
                     cudnn::convolution::Mode::Convolution)?;
-
         Ok(Convolution2D {
                w_desc,
                w,
@@ -78,9 +76,14 @@ impl<T, InC, OutC, KSize, Pad, Stride, Dilate> Convolution2D<T,
     }
 }
 
-impl<T, InC, OutC, KSize, Pad, Stride, Dilate> Layer<T>
-    for Convolution2D<T, InC, OutC, KSize, Pad, Stride, Dilate>
-    where T: ops::Neg<Output = T> + cudnn::scalar::Scalar + misc::Scalar,
+impl<T, InC, OutC, KSize, Pad, Stride, Dilate> Convolution2D<T,
+                                                             InC,
+                                                             OutC,
+                                                             KSize,
+                                                             Pad,
+                                                             Stride,
+                                                             Dilate>
+    where T: ops::Neg<Output = T> + cublas::scalar::Scalar + cudnn::scalar::Scalar,
           InC: USize,
           OutC: USize,
           KSize: USize,
@@ -88,29 +91,36 @@ impl<T, InC, OutC, KSize, Pad, Stride, Dilate> Layer<T>
           Stride: USize,
           Dilate: USize
 {
-    fn optimize(&mut self, _: &mut Context, lr: T) -> Result<()> {
-        misc::axpy(-lr, &self.dw, &mut self.w)
+    pub fn optimize(&mut self, context: &mut Context, lr: T) -> Result<()> {
+        cublas::axpy(&mut context.cublas,
+                     self.w.len(),
+                     &-lr,
+                     &self.dw,
+                     1,
+                     &mut self.w,
+                     1)?;
+        Ok(())
     }
 }
 
-impl<T, S, KSize, N, InC, InH, InW, OutC, OutH, OutW> UnaryLayer<T, N, InC, InH, InW, N, OutC, OutH, OutW>
-    for Convolution2D<T, InC, OutC, KSize, U0, U1, U1>
-    where T: ops::Neg<Output = T> + cudnn::scalar::Scalar + cudnn::scalar::Scale<Scale = S> + misc::Scalar,
-          S: From<T> + num_traits::Zero + num_traits::One,
-          KSize: USize + generic_value::Sub<U1>,
-          N: USize,
+impl<T, S, InC, OutC, KSize> Convolution2D<T, InC, OutC, KSize, U0, U1, U1>
+    where T: cudnn::scalar::Scalar + cudnn::scalar::Scale<Scale = S>,
+          S: num_traits::Zero + num_traits::One,
           InC: USize,
-          InH: USize + generic_value::Sub<<KSize as generic_value::Sub<U1>>::Output, Output = OutH>,
-          InW: USize + generic_value::Sub<<KSize as generic_value::Sub<U1>>::Output, Output = OutW>,
           OutC: USize,
-          OutH: USize,
-          OutW: USize
+          KSize: USize + generic_value::Sub<U1>
 {
-    fn forward(&self,
-               context: &mut Context,
-               x: &Tensor<T, N, InC, InH, InW>,
-               y: &mut Tensor<T, N, OutC, OutH, OutW>)
-               -> Result<()> {
+    pub fn forward<N, InH, InW, OutH, OutW>(&self,
+                                            context: &mut Context,
+                                            x: &Tensor<T, N, InC, InH, InW>,
+                                            y: &mut Tensor<T, N, OutC, OutH, OutW>)
+                                            -> Result<()>
+        where N: USize,
+              InH: USize + generic_value::Sub<<KSize as generic_value::Sub<U1>>::Output, Output = OutH>,
+              InW: USize + generic_value::Sub<<KSize as generic_value::Sub<U1>>::Output, Output = OutW>,
+              OutH: USize,
+              OutW: USize
+    {
         let algo =
             cudnn::convolution::get_forward_algorithm(&mut context.cudnn,
                                                       x.cudnn_desc(),
@@ -125,30 +135,38 @@ impl<T, S, KSize, N, InC, InH, InW, OutC, OutH, OutW> UnaryLayer<T, N, InC, InH,
                                                                             y.cudnn_desc(),
                                                                             algo)?;
         cudnn::convolution::forward(&mut context.cudnn,
-                                        S::one(),
-                                        x.cudnn(),
-                                        (&self.w_desc, &self.w),
-                                        &self.conv_desc,
-                                        algo,
-                                        &mut context.workspace.get(workspace_size)?,
-                                        S::zero(),
-                                        y.cudnn_mut())?;
+                                    &S::one(),
+                                    x.cudnn_mem(),
+                                    (&self.w_desc, &self.w),
+                                    &self.conv_desc,
+                                    algo,
+                                    &mut context.workspace.get(workspace_size)?,
+                                    &S::zero(),
+                                    y.cudnn_mem_mut())?;
         Ok(())
     }
 
-    fn backward(&mut self,
-                context: &mut Context,
-                x: &Tensor<T, N, InC, InH, InW>,
-                dy: &Tensor<T, N, OutC, OutH, OutW>,
-                _: &mut Tensor<T, N, InC, InH, InW>)
-                -> Result<()> {
+    pub fn backward<N, InH, InW,  OutH, OutW>(&mut self,
+                                              context: &mut Context,
+                                              x: &Tensor<T, N, InC, InH, InW>,
+                                              dy: &Tensor<T, N, OutC, OutH, OutW>,
+                                              _: &mut Tensor<T, N, InC, InH, InW>)
+                                              -> Result<()>
+        where N: USize,
+              InC: USize,
+              InH: USize + generic_value::Sub<<KSize as generic_value::Sub<U1>>::Output, Output = OutH>,
+              InW: USize + generic_value::Sub<<KSize as generic_value::Sub<U1>>::Output, Output = OutW>,
+              OutC: USize,
+              OutH: USize,
+              OutW: USize
+    {
         let algo =
-                cudnn::convolution::get_backward_filter_algorithm(&mut context.cudnn,
-                                                                  x.cudnn_desc(),
-                                                                  dy.cudnn_desc(),
-                                                                  &self.conv_desc,
-                                                                  &self.w_desc,
-                                                                  cudnn::convolution::BwdFilterPreference::PreferFastest)?;
+            cudnn::convolution::get_backward_filter_algorithm(&mut context.cudnn,
+                                                              x.cudnn_desc(),
+                                                              dy.cudnn_desc(),
+                                                              &self.conv_desc,
+                                                              &self.w_desc,
+                                                              cudnn::convolution::BwdFilterPreference::PreferFastest)?;
         let workspace_size =
             cudnn::convolution::get_backward_filter_workspace_size(&mut context.cudnn,
                                                                    x.cudnn_desc(),
@@ -156,15 +174,15 @@ impl<T, S, KSize, N, InC, InH, InW, OutC, OutH, OutW> UnaryLayer<T, N, InC, InH,
                                                                    &self.conv_desc,
                                                                    &self.w_desc,
                                                                    algo)?;
-            cudnn::convolution::backward_filter(&mut context.cudnn,
-                                                S::one(),
-                                                x.cudnn(),
-                                                dy.cudnn(),
-                                                &self.conv_desc,
-                                                algo,
-                                                &mut context.workspace.get(workspace_size)?,
-                                                S::zero(),
-                                                (&self.w_desc, &mut self.dw))?;
+        cudnn::convolution::backward_filter(&mut context.cudnn,
+                                            &S::one(),
+                                            x.cudnn_mem(),
+                                            dy.cudnn_mem(),
+                                            &self.conv_desc,
+                                            algo,
+                                            &mut context.workspace.get(workspace_size)?,
+                                            &S::zero(),
+                                            (&self.w_desc, &mut self.dw))?;
         Ok(())
     }
 }

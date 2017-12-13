@@ -1,6 +1,7 @@
 use std::mem;
 
 use cuda::memory;
+use cublas;
 use cudnn;
 
 use Result;
@@ -9,13 +10,18 @@ use self::memory::{Repr, ReprMut};
 
 pub struct Context {
     pub workspace: Workspace,
+    pub cublas: cublas::context::Context,
     pub cudnn: cudnn::context::Context,
 }
 
 impl Context {
     pub fn new() -> Result<Context> {
+        let mut cublas = cublas::context::Context::new()?;
+        cublas.set_pointer_mode(cublas::PointerMode::Host)?;
+
         Ok(Context {
                workspace: Workspace::new(),
+               cublas,
                cudnn: cudnn::context::Context::new()?,
            })
     }
