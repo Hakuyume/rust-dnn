@@ -61,12 +61,14 @@ impl<T, S, N, C> SoftmaxCrossEntropy<T, N, C>
                                  None as Option<(_, &cuda::memory::View<_>)>,
                                  &S::zero(),
                                  dx.cudnn_mem_mut())?;
-        let sum = cublas::dot(&mut context.cublas,
-                              N::VALUE * C::VALUE,
-                              self.tmp.mem(),
-                              1,
-                              t.mem(),
-                              1)?;
+        let mut sum = T::zero();
+        cublas::dot(&mut context.cublas,
+                    N::VALUE * C::VALUE,
+                    self.tmp.mem(),
+                    1,
+                    t.mem(),
+                    1,
+                    &mut sum)?;
         Ok(-sum / T::from(N::VALUE).unwrap_or(T::one()))
     }
 }
