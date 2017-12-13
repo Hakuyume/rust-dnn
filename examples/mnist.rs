@@ -28,7 +28,9 @@ fn main() {
 
     let mnist = MNIST::new("mnist").unwrap();
 
-    for _ in 0..50 {
+    let mut loss = 0.;
+
+    for i in 0..10000 {
         {
             let indices = rand::seq::sample_indices(&mut rng, mnist.train.len(), BatchSize::VALUE);
             let mut x_host = vec![0.; x.mem().len()];
@@ -45,10 +47,13 @@ fn main() {
         }
 
         fc.forward(&mut context, &x, &mut y).unwrap();
-        let loss = softmax_cross_entropy
+        loss += softmax_cross_entropy
             .compute(&mut context, &y, &t, &mut dy)
             .unwrap();
-        println!("loss: {}", loss);
+        if i % 100 == 0 {
+            println!("iteration: {}, loss: {}", i, loss / 100.);
+            loss = 0.;
+        }
         fc.backward(&mut context, &x, &dy, &mut dx).unwrap();
 
         fc.optimize(&mut context, 1e-5).unwrap();
