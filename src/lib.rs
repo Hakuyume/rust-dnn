@@ -1,4 +1,4 @@
-extern crate num;
+extern crate num_traits;
 extern crate cuda;
 extern crate cublas;
 extern crate cudnn;

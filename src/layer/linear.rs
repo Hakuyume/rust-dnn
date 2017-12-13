@@ -1,4 +1,4 @@
-use num;
+use num_traits;
 
 use cublas;
 use cudnn;
@@ -27,7 +27,7 @@ impl<T, InC, OutC> Linear<T, InC, OutC>
 }
 
 impl<T, InC, OutC> Linear<T, InC, OutC>
-    where T: num::Float + cublas::scalar::Scalar + cudnn::scalar::Scalar,
+    where T: num_traits::Signed + cublas::scalar::Scalar + cudnn::scalar::Scalar,
           InC: USize,
           OutC: USize
 {
@@ -38,7 +38,7 @@ impl<T, InC, OutC> Linear<T, InC, OutC>
 
 impl<T, S, InC, OutC> Linear<T, InC, OutC>
     where T: cudnn::scalar::Scale<Scale = S>,
-          S: num::Float,
+          S: num_traits::Signed,
           InC: USize,
           OutC: USize
 {

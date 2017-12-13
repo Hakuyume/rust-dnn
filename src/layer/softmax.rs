@@ -1,4 +1,4 @@
-use num;
+use num_traits;
 
 use cuda;
 use cublas;
@@ -30,8 +30,8 @@ impl<T, N, C> SoftmaxCrossEntropy<T, N, C>
 
 
 impl<T, S, N, C> SoftmaxCrossEntropy<T, N, C>
-    where T: num::Float + cublas::scalar::Scalar + cudnn::scalar::Scale<Scale = S>,
-          S: num::Float,
+    where T: num_traits::Signed + num_traits::NumCast + cublas::scalar::Scalar + cudnn::scalar::Scale<Scale = S>,
+          S: num_traits::Signed + num_traits::NumCast,
           N: USize,
           C: USize
 {

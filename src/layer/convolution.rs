@@ -1,6 +1,6 @@
 use std::marker;
 
-use num;
+use num_traits;
 
 use cuda::memory;
 use cublas;
@@ -82,7 +82,7 @@ impl<T, InC, OutC, KSize, Pad, Stride, Dilate> Convolution2D<T,
                                                              Pad,
                                                              Stride,
                                                              Dilate>
-    where T: num::Float + cublas::scalar::Scalar + cudnn::scalar::Scalar,
+    where T: num_traits::Signed + cublas::scalar::Scalar + cudnn::scalar::Scalar,
           InC: USize,
           OutC: USize,
           KSize: USize,
@@ -104,7 +104,7 @@ impl<T, InC, OutC, KSize, Pad, Stride, Dilate> Convolution2D<T,
 
 impl<T, S, InC, OutC, KSize> Convolution2D<T, InC, OutC, KSize, U0, U1, U1>
     where T: cudnn::scalar::Scale<Scale = S>,
-          S: num::Float,
+          S: num_traits::Signed,
           InC: USize,
           OutC: USize,
           KSize: USize + generic_value::Sub<U1>
