@@ -50,8 +50,8 @@ fn main() {
         loss += softmax_cross_entropy
             .compute(&mut context, &y, &t, &mut dy)
             .unwrap();
-        if i % 100 == 0 {
-            println!("iteration: {}, loss: {}", i, loss / 100.);
+        if (i + 1) % 100 == 0 {
+            println!("iteration: {}, loss: {}", i + 1, loss / 100.);
             loss = 0.;
         }
         fc.backward(&mut context, &x, &dy, &mut dx).unwrap();
