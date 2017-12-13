@@ -1,6 +1,4 @@
-use std::ops;
-
-use num_traits;
+use num;
 
 use cuda;
 use cublas;
@@ -32,8 +30,8 @@ impl<T, N, C> SoftmaxCrossEntropy<T, N, C>
 
 
 impl<T, S, N, C> SoftmaxCrossEntropy<T, N, C>
-    where T: ops::Div<Output = T> + num_traits::FromPrimitive + cublas::scalar::Scalar + cudnn::scalar::Scale<Scale = S>,
-          S: ops::Neg<Output = S> + ops::Div<Output = S> + num_traits::Zero + num_traits::One + num_traits::FromPrimitive,
+    where T: num::Float + cublas::scalar::Scalar + cudnn::scalar::Scale<Scale = S>,
+          S: num::Float,
           N: USize,
           C: USize
 {
@@ -51,7 +49,7 @@ impl<T, S, N, C> SoftmaxCrossEntropy<T, N, C>
                                 &S::zero(),
                                 self.tmp.cudnn_mem_mut())?;
         cudnn::tensor::add(&mut context.cudnn,
-                           &(-S::one() / S::from_usize(N::VALUE).unwrap_or(S::one())),
+                           &(-S::one() / S::from(N::VALUE).unwrap_or(S::one())),
                            t.cudnn_mem(),
                            &S::zero(),
                            dx.cudnn_mem_mut())?;
@@ -69,10 +67,6 @@ impl<T, S, N, C> SoftmaxCrossEntropy<T, N, C>
                               1,
                               t.mem(),
                               1)?;
-        if let Some(n) = T::from_usize(N::VALUE) {
-            Ok(sum / n)
-        } else {
-            Ok(sum)
-        }
+        Ok(-sum / T::from(N::VALUE).unwrap_or(T::one()))
     }
 }

@@ -1,6 +1,4 @@
-use std::ops;
-
-use num_traits;
+use num;
 
 use cublas;
 use cudnn;
@@ -29,7 +27,7 @@ impl<T, InC, OutC> Linear<T, InC, OutC>
 }
 
 impl<T, InC, OutC> Linear<T, InC, OutC>
-    where T: ops::Neg<Output = T> + cublas::scalar::Scalar + cudnn::scalar::Scalar,
+    where T: num::Float + cublas::scalar::Scalar + cudnn::scalar::Scalar,
           InC: USize,
           OutC: USize
 {
@@ -39,8 +37,8 @@ impl<T, InC, OutC> Linear<T, InC, OutC>
 }
 
 impl<T, S, InC, OutC> Linear<T, InC, OutC>
-    where T: cudnn::scalar::Scalar + cudnn::scalar::Scale<Scale = S>,
-          S: From<T> + num_traits::Zero + num_traits::One,
+    where T: cudnn::scalar::Scale<Scale = S>,
+          S: num::Float,
           InC: USize,
           OutC: USize
 {
